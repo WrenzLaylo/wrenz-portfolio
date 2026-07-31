@@ -11,9 +11,11 @@ export const metadata: Metadata = {
   description: "Portfolio of Wrenz Laylo, a full-stack developer building business systems, production automation, WordPress solutions, and applied AI workflows.",
   keywords: ["Wrenz Laylo", "Full-Stack Developer", "Automation Engineer", "WordPress Developer", "AI Engineer", "React", "Next.js", "Python", "Django"],
   authors: [{ name: "Wrenz Ivan Laylo" }],
+  alternates: { canonical: "/" },
   openGraph: {
     title: "Wrenz Laylo | Developer & Automation Engineer",
     description: "Business systems, production automation, WordPress engineering, and applied AI.",
+    url: "/",
     type: "website",
     locale: "en_PH",
   },
