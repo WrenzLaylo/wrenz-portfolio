@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { CSSProperties } from "react";
 
 const ArrowUpRight = () => (
   <svg aria-hidden="true" viewBox="0 0 20 20" width="18" height="18">
@@ -51,6 +52,7 @@ const skillGroups = [
 export default function Home() {
   return (
     <main>
+      <script src="/motion.js" defer />
       <a className="skip-link" href="#main-content">Skip to content</a>
 
       <header className="site-header">
@@ -69,7 +71,7 @@ export default function Home() {
       <div id="main-content">
         <section className="hero" id="top">
           <div className="hero-grid" />
-          <div className="hero-copy">
+          <div className="hero-copy" data-hero-copy>
             <p className="eyebrow"><span className="status-dot" /> Available for full-stack, automation, WordPress, and AI roles</p>
             <h1>I build business systems that work <em>outside the demo.</em></h1>
             <p className="hero-lede">I’m Wrenz, a full-stack developer who turns real operating rules into reliable software, from database-backed business apps to production automation and AI-assisted workflows.</p>
@@ -84,32 +86,34 @@ export default function Home() {
           </div>
 
           <div className="hero-profile" aria-label="Wrenz Laylo profile">
-            <div className="portrait-shell">
-              <div className="portrait-accent" />
-              <Image src="/wrenz-laylo.jpg" alt="Wrenz Ivan Laylo" fill priority sizes="(max-width: 800px) 76vw, 360px" />
-              <span className="portrait-label">Wrenz Ivan Laylo</span>
-            </div>
-            <div className="code-card" aria-hidden="true">
-              <div className="code-top"><span /><span /><span /><small>approach.ts</small></div>
-              <code><i>const</i> work = {'{'}<br />&nbsp;&nbsp;understand: <b>true</b>,<br />&nbsp;&nbsp;build: <b>carefully</b>,<br />&nbsp;&nbsp;verify: <b>always</b><br />{'}'};</code>
+            <div className="hero-profile-inner">
+              <div className="portrait-shell">
+                <div className="portrait-accent" />
+                <Image src="/wrenz-laylo-graduation.webp" alt="Wrenz Ivan Laylo in graduation attire" fill priority sizes="(max-width: 800px) 76vw, 400px" />
+                <span className="portrait-label">Cum Laude · 2026</span>
+              </div>
+              <div className="code-card" aria-hidden="true">
+                <div className="code-top"><span /><span /><span /><small>approach.ts</small></div>
+                <code><i>const</i> work = {'{'}<br />&nbsp;&nbsp;understand: <b>true</b>,<br />&nbsp;&nbsp;build: <b>carefully</b>,<br />&nbsp;&nbsp;verify: <b>always</b><br />{'}'};</code>
+              </div>
             </div>
           </div>
         </section>
 
         <section className="proof-bar" aria-label="Selected outcomes">
-          <div><strong>61/64</strong><span>legacy pages recovered</span></div>
-          <div><strong>153</strong><span>technical PDF links completed</span></div>
-          <div><strong>20</strong><span>automation regression tests</span></div>
-          <div><strong>3</strong><span>Google APIs integrated</span></div>
+          <div><strong data-count="61" data-suffix="/64">61/64</strong><span>legacy pages recovered</span></div>
+          <div><strong data-count="153">153</strong><span>technical PDF links completed</span></div>
+          <div><strong data-count="20">20</strong><span>automation regression tests</span></div>
+          <div><strong data-count="3">3</strong><span>Google APIs integrated</span></div>
         </section>
 
         <section className="section work-section" id="work">
-          <div className="section-heading">
+          <div className="section-heading" data-reveal>
             <div><p className="kicker">Selected work</p><h2>Built around actual operations.</h2></div>
             <p>Each project started with a real workflow, constraint, or failure mode. The interface came after the rules were understood.</p>
           </div>
 
-          <article className="project project-pos">
+          <article className="project project-pos" data-reveal>
             <div className="project-copy">
               <div className="project-index">01 / BUSINESS SYSTEM</div>
               <h3>Pig Feeds POS</h3>
@@ -122,7 +126,7 @@ export default function Home() {
               <div className="tags"><span>Next.js</span><span>TypeScript</span><span>Prisma</span><span>SQLite</span><span>Vitest</span></div>
               <p className="project-note">Private client project · case study available</p>
             </div>
-            <div className="project-visual pos-window" aria-label="Illustration of Pig Feeds POS interface">
+            <div className="project-visual pos-window" data-parallax="0.055" aria-label="Illustration of Pig Feeds POS interface">
               <div className="window-bar"><span /><span /><span /><b>Daily order book</b></div>
               <div className="pos-layout">
                 <div className="pos-main">
@@ -139,7 +143,7 @@ export default function Home() {
             </div>
           </article>
 
-          <article className="project project-automation">
+          <article className="project project-automation" data-reveal>
             <div className="project-copy">
               <div className="project-index">02 / PRODUCTION AUTOMATION</div>
               <h3>AGG Doors time-log system</h3>
@@ -152,14 +156,14 @@ export default function Home() {
               <div className="tags"><span>Python</span><span>Google Chat API</span><span>Sheets API</span><span>Drive API</span><span>GitHub Actions</span></div>
               <a className="text-link" href="https://github.com/WrenzLaylo/MVC-Time-Logs-Automation" target="_blank" rel="noreferrer">View public adaptation <ArrowUpRight /></a>
             </div>
-            <div className="project-visual automation-board" aria-label="Illustration of attendance automation workflow">
+            <div className="project-visual automation-board" data-parallax="0.05" aria-label="Illustration of attendance automation workflow">
               <div className="automation-stage chat-stage">
                 <small>GOOGLE CHAT · 7:23 AM</small>
                 <div className="avatar">WL</div><p><b>Computers</b><br />Login 7:23 -W</p>
                 <div className="chat-bubble">Lunch out 12:04<br />Back 12:47</div>
               </div>
               <div className="flow-line"><span>parse</span><span>validate</span><span>map</span></div>
-              <div className="automation-stage sheet-stage">
+              <div className="automation-stage sheet-stage" tabIndex={0} aria-label="Scrollable employee timesheet preview">
                 <div className="sheet-head"><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span><span>I</span><span>J</span><span>K</span></div>
                 <div className="sheet-labels"><span>Arrival</span><span>Start</span><span>Break</span><span>In</span><span>Lunch</span><span>In</span><span>Finish</span><span>Total</span></div>
                 <div className="sheet-row"><span>7:22</span><span>7:23</span><span>—</span><span>—</span><span>12:04</span><span>12:47</span><span>4:31</span><b>8:25</b></div>
@@ -168,7 +172,7 @@ export default function Home() {
             </div>
           </article>
 
-          <div className="project-pair">
+          <div className="project-pair" data-reveal>
             <article className="project-small medical-project">
               <div className="small-visual medical-ui">
                 <div className="med-nav"><span className="med-icon">+</span><b>Med42 Clinical Suite</b><small>AI Enabled</small></div>
@@ -189,34 +193,53 @@ export default function Home() {
             </article>
           </div>
 
+          <article className="project project-rockstar" data-reveal>
+            <div className="project-copy">
+              <div className="project-index">05 / PRODUCTION EXPERIENCE</div>
+              <h3>Everyday Rockstar™</h3>
+              <p className="project-summary">A conversion-focused coaching and community platform with a cinematic editorial direction, custom motion, responsive behavior, and production-grade delivery.</p>
+              <ul className="project-points">
+                <li><Check /> Built a pinned three-scene hero, scroll reveals, parallax, marquees, and smooth scrolling.</li>
+                <li><Check /> Kept mobile layouts in-flow and preserved a complete reduced-motion experience.</li>
+                <li><Check /> Shipped optimized WebP assets, security headers, legal pages, redirects, and deployment QA.</li>
+              </ul>
+              <div className="tags"><span>Vite</span><span>JavaScript</span><span>GSAP</span><span>Lenis</span><span>Apache</span></div>
+              <a className="text-link" href="https://everyday-rockstars.com" target="_blank" rel="noreferrer">Visit live experience <ArrowUpRight /></a>
+            </div>
+            <a className="project-visual rockstar-window" data-parallax="0.045" href="https://everyday-rockstars.com" target="_blank" rel="noreferrer" aria-label="Open the live Everyday Rockstar website">
+              <div className="rockstar-browser"><span /><span /><span /><b>everyday-rockstars.com</b><small>LIVE</small></div>
+              <div className="rockstar-shot"><Image src="/everyday-rockstar-live.webp" alt="Everyday Rockstar production website hero" fill sizes="(max-width: 800px) 100vw, 62vw" /></div>
+              <div className="rockstar-caption"><span>Production snapshot</span><strong>Open live site <ArrowUpRight /></strong></div>
+            </a>
+          </article>
+
           <div className="more-work">
-            <article><span>PRODUCTION WEBSITE</span><h3>Everyday Rockstar</h3><p>A responsive creator platform with custom motion, conversion-focused content, deployment QA, and ongoing production maintenance.</p><a href="https://everyday-rockstars.com" target="_blank" rel="noreferrer">Visit live site <ArrowUpRight /></a></article>
-            <article><span>COMPUTER VISION</span><h3>LiPAD</h3><p>CRNN and GAN research for deblurring and recognizing Philippine license plates. Best Computer Science Thesis Paper and Presenter at IRCITE 2026.</p><small>TensorFlow · PyTorch · CRNN · GAN</small></article>
-            <article><span>FULL-STACK FINTECH</span><h3>PesoWise</h3><p>A personal spending tracker built with Next.js, TypeScript, Prisma, authentication, and protected user data flows.</p><a href="https://pesowise-umber.vercel.app" target="_blank" rel="noreferrer">Visit live app <ArrowUpRight /></a></article>
+            <article data-reveal><span>COMPUTER VISION</span><h3>LiPAD</h3><p>CRNN and GAN research for deblurring and recognizing Philippine license plates. Best Computer Science Thesis Paper and Presenter at IRCITE 2026.</p><small>TensorFlow · PyTorch · CRNN · GAN</small></article>
+            <article data-reveal><span>FULL-STACK FINTECH</span><h3>PesoWise</h3><p>A personal spending tracker built with Next.js, TypeScript, Prisma, authentication, and protected user data flows.</p><a href="https://pesowise-umber.vercel.app" target="_blank" rel="noreferrer">Visit live app <ArrowUpRight /></a></article>
           </div>
         </section>
 
         <section className="section capabilities-section">
-          <div className="section-heading compact"><div><p className="kicker">What I do</p><h2>One developer, four useful angles.</h2></div></div>
-          <div className="capability-grid">{capabilities.map((item) => <article key={item.number}><span>{item.number}</span><h3>{item.title}</h3><p>{item.body}</p></article>)}</div>
-          <div className="skills-table">{skillGroups.map(([label, items]) => <div key={label}><strong>{label}</strong><span>{items}</span></div>)}</div>
+          <div className="section-heading compact" data-reveal><div><p className="kicker">What I do</p><h2>One developer, four useful angles.</h2></div></div>
+          <div className="capability-grid">{capabilities.map((item, index) => <article key={item.number} data-reveal style={{ "--reveal-delay": `${index * 80}ms` } as CSSProperties}><span>{item.number}</span><h3>{item.title}</h3><p>{item.body}</p></article>)}</div>
+          <div className="skills-table" data-reveal>{skillGroups.map(([label, items]) => <div key={label}><strong>{label}</strong><span>{items}</span></div>)}</div>
         </section>
 
         <section className="section experience-section" id="experience">
-          <div className="section-heading"><div><p className="kicker">Experience</p><h2>Production work, not coursework dressed up.</h2></div><p>I work close to the operational details: existing data, business rules, live users, rollback paths, and the parts that cannot be guessed.</p></div>
+          <div className="section-heading" data-reveal><div><p className="kicker">Experience</p><h2>Production work, not coursework dressed up.</h2></div><p>I work close to the operational details: existing data, business rules, live users, rollback paths, and the parts that cannot be guessed.</p></div>
           <div className="timeline">
-            <article><div className="timeline-date">2026 — Present</div><div><h3>Freelance Web Developer & Automation Engineer</h3><p className="company">AGG Doors · Client project</p><p>Production WordPress engineering, content recovery, technical SEO, Python automation, Google Workspace APIs, document processing, and verified live changes.</p></div></article>
-            <article><div className="timeline-date">2026 — Present</div><div><h3>Freelance Full-Stack Web Developer</h3><p className="company">Self-employed</p><p>Business applications and responsive client sites using React, Next.js, TypeScript, Django, Prisma, and modern deployment workflows.</p></div></article>
-            <article><div className="timeline-date">2026</div><div><h3>Full-Stack Developer / AI Engineer Intern</h3><p className="company">eBiZolution · Healthcare portal</p><p>Versioned clinical APIs, approval workflows, SSE-based AI output, PostgreSQL, Redis, JWT sessions, rate limiting, revocation, and audit logging.</p></div></article>
+            <article data-reveal><div className="timeline-date">2026 — Present</div><div><h3>Freelance Web Developer & Automation Engineer</h3><p className="company">AGG Doors · Client project</p><p>Production WordPress engineering, content recovery, technical SEO, Python automation, Google Workspace APIs, document processing, and verified live changes.</p></div></article>
+            <article data-reveal><div className="timeline-date">2026 — Present</div><div><h3>Freelance Full-Stack Web Developer</h3><p className="company">Self-employed</p><p>Business applications and responsive client sites using React, Next.js, TypeScript, Django, Prisma, and modern deployment workflows.</p></div></article>
+            <article data-reveal><div className="timeline-date">2026</div><div><h3>Full-Stack Developer / AI Engineer Intern</h3><p className="company">eBiZolution · Healthcare portal</p><p>Versioned clinical APIs, approval workflows, SSE-based AI output, PostgreSQL, Redis, JWT sessions, rate limiting, revocation, and audit logging.</p></div></article>
           </div>
         </section>
 
         <section className="section about-section" id="about">
-          <div className="about-copy"><p className="kicker">About</p><h2>I care about the handoff between “it runs” and “it’s reliable.”</h2><p>I’m a Computer Science graduate from Angeles University Foundation, majoring in Data Science. I graduated Cum Laude and now work across software development, automation, WordPress, and applied AI.</p><p>My strongest work usually starts where the requirements get messy: old spreadsheets, inconsistent user input, account migrations, production content, or an AI output that still needs safety and review.</p><div className="about-links"><a href="https://github.com/WrenzLaylo" target="_blank" rel="noreferrer">GitHub <ArrowUpRight /></a><a href="https://linkedin.com/in/wrenzlaylo" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight /></a></div></div>
-          <div className="recognition-card"><p>RECOGNITION</p><div><strong>Cum Laude</strong><span>BS Computer Science, Data Science</span></div><div><strong>Best Thesis Paper & Presenter</strong><span>IRCITE 2026 · LiPAD</span></div><div><strong>1st Place</strong><span>JPCS Hackathon 2025</span></div><div><strong>Microsoft Certified</strong><span>Azure Fundamentals</span></div></div>
+          <div className="about-copy" data-reveal><p className="kicker">About</p><h2>I care about the handoff between “it runs” and “it’s reliable.”</h2><p>I’m a Computer Science graduate from Angeles University Foundation, majoring in Data Science. I graduated Cum Laude and now work across software development, automation, WordPress, and applied AI.</p><p>My strongest work usually starts where the requirements get messy: old spreadsheets, inconsistent user input, account migrations, production content, or an AI output that still needs safety and review.</p><div className="about-links"><a href="https://github.com/WrenzLaylo" target="_blank" rel="noreferrer">GitHub <ArrowUpRight /></a><a href="https://linkedin.com/in/wrenzlaylo" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight /></a></div></div>
+          <div className="recognition-card" data-reveal data-parallax="0.04"><p>RECOGNITION</p><div><strong>Cum Laude</strong><span>BS Computer Science, Data Science</span></div><div><strong>Best Thesis Paper & Presenter</strong><span>IRCITE 2026 · LiPAD</span></div><div><strong>1st Place</strong><span>JPCS Hackathon 2025</span></div><div><strong>Microsoft Certified</strong><span>Azure Fundamentals</span></div></div>
         </section>
 
-        <section className="contact-section" id="contact">
+        <section className="contact-section" id="contact" data-reveal>
           <p className="kicker">Let’s build something useful</p>
           <h2>Have a workflow that has outgrown its spreadsheet?</h2>
           <p>I’m open to full-time roles, freelance projects, and conversations about business systems, automation, WordPress, or applied AI.</p>
