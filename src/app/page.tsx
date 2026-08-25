@@ -1,4 +1,5 @@
 import Image from "next/image";
+import MotionEffects from "./MotionEffects";
 
 const ArrowUpRight = () => (
   <svg aria-hidden="true" viewBox="0 0 20 20" width="18" height="18">
@@ -51,6 +52,7 @@ const skillGroups = [
 export default function Home() {
   return (
     <main>
+      <MotionEffects />
       <a className="skip-link" href="#main-content">Skip to content</a>
 
       <header className="site-header">
