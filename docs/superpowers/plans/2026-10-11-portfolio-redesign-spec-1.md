@@ -58,6 +58,10 @@ The spec is approved. These points fill gaps or fix contradictions found while p
 14. **Delivery order:** PR #2 (spec) and this plan's PR merge into `master` before Phase 0 cuts `redesign` from `master`, so both documents travel with the code. (Task 0.1)
 15. **Basic scenes until a world is designed.** Phase 1 registers a shared basic world scene and a basic vignette scene for every slug (mascot plus screenshot if one exists), so the type-checked registries are complete from the start and the page is reviewable after Phase 4. Phases 3, 5, 6 and 7 replace them one by one. (Task 1.4)
 16. **Interim tints.** Phase 1 sets interim tints for worlds 3 to 6 and the five vignettes (right hue family, lightness 88 to 91); Fable sets the final value when each scene is designed, and the contrast test re-checks it. (Task 1.3)
+17. **One SVG-internal flourish is kept.** The POS pig's ear flick and double blink (0.3 s once every 6.5 s) are WAAPI tweens on SVG `<g>` elements inside the head layer, carried from the approved slice. They are the only SVG-internal animation on the page (spec §11 Rule 3 bans per-frame SVG tweens), are guarded by `typeof el.animate === "function"`, and must measure under 2 ms of main-thread time per cycle at 4x CPU (`who.py pos 4`); otherwise they are deleted. (Task 3.4)
+18. **Contact's top edge is straight**, not a hill edge: the six mascots peek over it (spec §10), and a hill would hide them. (Task 4.2)
+19. **`icon.svg` draws "WL" with strokes**, not Gabarito text: a favicon cannot load a web font, so text would fall back to a system font. (Task 2.4)
+20. **The OG image's yolk shape is a circle**, not the hero's blob path, because the OG renderer (Satori) supports only a subset of CSS and SVG; the portrait, name, role and slogan are as specified. (Task 2.4)
 
 ## Review Focus
 
@@ -551,7 +555,8 @@ async def park(pg, slug, frac=0.15):
     top = await pg.evaluate(TOP_OF, sel(slug))
     if top is None:
         return False
-    await pg.evaluate("(y) => window.scrollTo(0, y)", top - await pg.evaluate("innerHeight") * frac)
+    # behavior "instant": a page-level scroll-behavior must never turn a park into a smooth scroll
+    await pg.evaluate("(y) => window.scrollTo({ top: y, behavior: 'instant' })", top - await pg.evaluate("innerHeight") * frac)
     return True
 
 
@@ -875,7 +880,7 @@ async def main():
         tag = f"{W}{'-rm' if RM else ''}{'-nojs' if NOJS else ''}"
         y, i, checks = 0, 0, []
         while y < total:
-            await pg.evaluate("(y) => window.scrollTo(0, y)", y)
+            await pg.evaluate("(y) => window.scrollTo({ top: y, behavior: 'instant' })", y)
             await pg.wait_for_timeout(WAIT)
             await pg.screenshot(path=f"{out}/s-{tag}-{i:02d}.png")
             checks.append(await pg.evaluate(CHECK))
@@ -1037,7 +1042,9 @@ const walk = (dir) =>
 const found = new Map();
 for (const file of walk(".next/static/chunks")) {
   const src = readFileSync(file, "utf8");
-  for (const m of src.matchAll(/["'`]choreo:([a-z0-9-]+)["'`]/g)) found.set(m[1], { file, gz: gzipSync(src).length });
+  // registerPlugin is a GSAP core method name; it survives minification, so it marks a chunk that holds GSAP.
+  const gsapInside = src.includes("registerPlugin");
+  for (const m of src.matchAll(/["'`]choreo:([a-z0-9-]+)["'`]/g)) found.set(m[1], { file, gz: gzipSync(src).length, gsapInside });
 }
 
 let failed = false;
@@ -1047,6 +1054,12 @@ for (const name of expected) {
     console.log(`MISSING choreo:${name} (no chunk contains its name)`);
     failed = true;
     continue;
+  }
+  const sharedWith = expected.filter((other) => other !== name && found.get(other)?.file === hit.file);
+  if (sharedWith.length) console.log(`WARN choreo:${name} shares its chunk with ${sharedWith.join(", ")}: the size below is the whole shared file`);
+  if (hit.gsapInside) {
+    console.log(`FAIL choreo:${name} is bundled with GSAP: GSAP must stay its own dynamic import (src/motion/MotionRuntime.tsx)`);
+    failed = true;
   }
   const kb = (hit.gz / 1024).toFixed(1);
   const ok = hit.gz <= LIMIT;
@@ -1895,10 +1908,11 @@ function variedText(v: Varied): string[] {
   }
 }
 
-/** Every visible string in page order (hero, worlds, vignettes, capabilities, experience, about, contact,
+/** Every visible string in page order (nav, hero, worlds, vignettes, capabilities, experience, about, contact,
  *  footer). The gloss test reads it, so first use is judged in the order a reader meets the words. */
 export function pageCopy(): string[] {
   return [
+    ...site.nav.map((link) => link.label),
     site.name,
     site.role,
     site.slogan.lineOne,
@@ -1940,7 +1954,7 @@ export function pageCopy(): string[] {
 - [ ] **Step 6: Run the tests**
 
 Run: `npx vitest run && npx tsc --noEmit && npm run lint`
-Expected: all tests pass (content-integrity 11, content-rules 6, rich 5); tsc and lint silent.
+Expected: all tests pass (content-integrity 12, content-rules 6, rich 5); tsc and lint silent.
 
 - [ ] **Step 7: Commit and open the PR**
 
@@ -2209,9 +2223,6 @@ Replace `src/app/globals.css` with:
     color-scheme: light;
     -webkit-text-size-adjust: 100%;
     scroll-padding-top: 80px; /* the sticky nav is 64 px */
-  }
-  @media (prefers-reduced-motion: no-preference) {
-    html { scroll-behavior: smooth; }
   }
   body {
     background: var(--color-paper);
@@ -3258,6 +3269,8 @@ Create `src/components/stage.css`:
 /* Off-screen the engine adds .paused. Only time-based loops pause: pausing a scroll-driven animation
    would desync it from the scroll position (spec §11 step 4). */
 [data-scene].paused .loop { animation-play-state: paused !important; }
+/* Off-screen stages also give their compositor layers back: fewer layers to layerize on every frame. */
+[data-scene].paused .layer, [data-scene].paused .mouse { will-change: auto; }
 
 @keyframes bob {
   0% { transform: translateY(0) rotate(0deg); animation-timing-function: ease-in-out; }
@@ -4037,8 +4050,8 @@ import type { SceneEnv } from "@/motion/types";
 import { fullScenes } from "@/scenes";
 import { finishAllTweens, setWidth } from "./helpers";
 
-/** What a choreography may change: classes, inline transform/opacity/visibility, appended elements and
- *  custom properties on the root. Cleanup must restore all of it. */
+/** What a choreography may change: classes, inline transform/opacity/visibility, appended elements, leaf
+ *  text and custom properties on the root. Cleanup must restore all of it. */
 function snapshot(root: HTMLElement) {
   return [root, ...root.querySelectorAll<HTMLElement>("*")].map((el) => ({
     tag: el.tagName,
@@ -4047,6 +4060,7 @@ function snapshot(root: HTMLElement) {
     opacity: el.style?.opacity ?? "",
     visibility: el.style?.visibility ?? "",
     vars: el === root ? Array.from(root.style).filter((p) => p.startsWith("--")).sort().join(",") : "",
+    text: el.childElementCount ? "" : (el.textContent ?? ""),
   }));
 }
 
@@ -4183,7 +4197,7 @@ npm run build && node tools/perf/chunks.mjs
 py -3.11 -I tools/perf/serve.py start
 ```
 
-Expected: `ok   choreo:basic ... KB gz` and `PASS`. Then in Chrome at 390 px (DevTools device mode) on `http://127.0.0.1:3000/`: open the menu, tap "About": the menu closes and About sits below the sticky bar. Press the menu button, then Escape: it closes. Then `py -3.11 -I tools/perf/serve.py stop`.
+Expected: `ok   choreo:basic ... KB gz`, no `WARN` or `FAIL` line, and `PASS` (the chunk holds the basic choreography, not GSAP). Then in Chrome at 390 px (DevTools device mode) on `http://127.0.0.1:3000/`: open the menu, tap "About": the menu closes and About sits below the sticky bar. Press the menu button, then Escape: it closes. Then `py -3.11 -I tools/perf/serve.py stop`.
 
 - [ ] **Step 13: Commit and open the PR**
 
@@ -5129,13 +5143,13 @@ describe("public/", () => {
 - [ ] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/public-assets.test.ts`
-Expected: FAIL, the received list also contains `everyday-rockstar-live.webp`, `file.svg`, `globe.svg`, `katiwala-logo.png`, `keyclick-automator-logo.png`, `motion.js`, `next.svg`, `vercel.svg`, `window.svg`, `wrenz-laylo-graduation.webp` and `wrenz-laylo.jpg`.
+Expected: FAIL, the received list also contains `everyday-rockstar-live.webp`, `file.svg`, `globe.svg`, `katiwala-logo.png`, `keyclick-automator-logo.png` (added to `master` by PR #1; `--ignore-unmatch` below covers a checkout without it), `motion.js`, `next.svg`, `vercel.svg`, `window.svg`, `wrenz-laylo-graduation.webp` and `wrenz-laylo.jpg`.
 
 - [ ] **Step 3: Prove nothing references them, then delete them**
 
 ```bash
 grep -rn -E "motion\.js|file\.svg|globe\.svg|next\.svg|vercel\.svg|window\.svg|katiwala-logo|keyclick-automator-logo|wrenz-laylo\.jpg|wrenz-laylo-graduation|everyday-rockstar-live" src tests next.config.ts || echo "no references"
-git rm public/motion.js public/file.svg public/globe.svg public/next.svg public/vercel.svg public/window.svg public/katiwala-logo.png public/keyclick-automator-logo.png public/wrenz-laylo.jpg public/wrenz-laylo-graduation.webp public/everyday-rockstar-live.webp
+git rm --ignore-unmatch public/motion.js public/file.svg public/globe.svg public/next.svg public/vercel.svg public/window.svg public/katiwala-logo.png public/keyclick-automator-logo.png public/wrenz-laylo.jpg public/wrenz-laylo-graduation.webp public/everyday-rockstar-live.webp
 ```
 
 Expected: `no references`, then 11 `rm` lines. If the grep prints a line, that file is still used: fix the reference first (it should point at `public/work/...` or `public/portrait.webp`), then delete.
@@ -5812,7 +5826,7 @@ export default function Home() {
 - [ ] **Step 8: Run the tests**
 
 Run: `npx vitest run && npx tsc --noEmit && npm run lint`
-Expected: all pass (world.test.tsx: 15; scenes.test.tsx still passes for the two bleed basic scenes; page.test.tsx still finds one h1 and every anchor).
+Expected: all pass (world.test.tsx: 18; scenes.test.tsx still passes for the two bleed basic scenes; page.test.tsx still finds one h1 and every anchor).
 
 - [ ] **Step 9: Look at the bands at 1:1**
 
@@ -6113,7 +6127,7 @@ Replace `src/components/hero.css` with:
 
 ```css
 /* The hero (spec §7): copy left, the "cast" right. Fills the first viewport under the 64 px nav. */
-.hero { position: relative; overflow: clip; min-height: calc(100dvh - 64px); display: flex; flex-direction: column; padding-bottom: 72px; }
+.hero { position: relative; overflow: clip; overflow-clip-margin: 1px; min-height: calc(100dvh - 64px); display: flex; flex-direction: column; padding-bottom: 72px; }
 .hero-grid { flex: 1; display: grid; grid-template-columns: 54fr 46fr; align-items: center; gap: 24px; padding: 32px 0 48px; }
 
 .hero h1 { display: grid; gap: 18px; }
@@ -7194,7 +7208,7 @@ node tools/perf/chunks.mjs
 py -3.11 -I tools/perf/serve.py start
 ```
 
-Expected: `ok   choreo:pos <n> KB gz` with n ≤ 8.0, then `PASS`. In Chrome open `http://127.0.0.1:3000/dev/scenes/pos`: the laptop rises, the pig walks in with its legs swinging, the sack drops and settles on its side, then the loops start. Hover the pig: it hops and three coins pop. Scroll the 820 frame out of view and back: no snap back to the start. Resize the window from 1440 to 700 wide: the 820 frame switches to the mobile grid and keeps its finished frame. Then `py -3.11 -I tools/perf/serve.py stop`.
+Expected: `ok   choreo:pos <n> KB gz` with n ≤ 8.0, no `WARN` line, then `PASS`. Then measure the one SVG-internal flourish (clarification 17) with the lab still built: `py -3.11 -I tools/perf/serve.py start`, `py -3.11 -I tools/perf/who.py pos 4`. Expected: the JS function list shows the `lookAtYou` work (WAAPI starts) at no more than 2 ms per 6.5 s cycle and no recurring `Layerize` above 2 ms. If it costs more, delete `lookAtYou`, its two `animationstart`/`animationiteration` listeners and the WAAPI cleanup from `choreo.ts` (the loops do not depend on it), re-run the tests, and say so in the PR. In Chrome open `http://127.0.0.1:3000/dev/scenes/pos`: the laptop rises, the pig walks in with its legs swinging, the sack drops and settles on its side, then the loops start. Hover the pig: it hops and three coins pop. Scroll the 820 frame out of view and back: no snap back to the start. Resize the window from 1440 to 700 wide: the 820 frame switches to the mobile grid and keeps its finished frame. Then `py -3.11 -I tools/perf/serve.py stop`.
 
 - [ ] **Step 6: Commit and open the PR**
 
@@ -9053,7 +9067,7 @@ export default function Home() {
 - [ ] **Step 6: Run the tests**
 
 Run: `npx vitest run && npx tsc --noEmit && npm run lint`
-Expected: all pass (sections 26, page 10 or more). If `holds no visible copy outside src/content` fails, the message lists the stray text: move it into `src/content/` (a label goes into `site.labels`) and render it from there; never widen the test.
+Expected: all pass (sections 26, page 9). If `holds no visible copy outside src/content` fails, the message lists the stray text: either it is missing from `pageCopy()` (add it there) or the component invented it (move it into `src/content/`, a label into `site.labels`, and render it from there); never widen the test.
 
 - [ ] **Step 7: Look at the bento at every layout**
 
@@ -11000,7 +11014,7 @@ Create `src/scenes/agent-island/scene.css`:
 
 - [ ] **Step 5: Register the scene and its stylesheet**
 
-In `src/scenes/index.ts`, add `import { AgentIslandScene } from "./agent-island/Scene";` and change the entry to `"agent-island": AgentIslandScene,`. In `src/app/globals.css`, add after the Stockroom scene import:
+In `src/scenes/index.ts`, add `import { AgentIslandScene } from "./agent-island/Scene";`, change the entry to `"agent-island": AgentIslandScene,`, and delete the line `import { BasicWorld } from "./basic/BasicWorld";` (no entry uses it any more, and `@typescript-eslint/no-unused-vars` is an error in this lint config). In `src/app/globals.css`, add after the Stockroom scene import:
 
 ```css
 @import "../scenes/agent-island/scene.css" layer(scenes);
@@ -11242,6 +11256,7 @@ Follow the "Scene protocol" and "Shared scene text" sections at the top of Phase
 - **Loops run without `.live`**, scoped to the scene (`[data-scene="<slug>"] .x.loop`), inside `prefers-reduced-motion: no-preference`. The shared `[data-tier="compact"] .bob.loop` from Task 4.3 already bobs `.bob` wrappers.
 - **First keyframe visible.** A loop must not begin at `opacity: 0` (Chrome would run it on the main thread for good); start each loop at a visible frame.
 - **DOM:** at most 120 elements per vignette stage (tested).
+- **The `[data-part="mascot"]` wrapper itself carries no animation;** loops go on a child, because `<Vignette>`'s hover and focus beat animates that wrapper.
 
 ### Task 7.1: Everyday Rockstar and LiPAD
 
@@ -11969,7 +11984,7 @@ import { Med42Scene } from "./med42/Scene";
 import { PesowiseScene } from "./pesowise/Scene";
 ```
 
-and change the entries to `keyclick: KeyclickScene,`, `med42: Med42Scene,` and `pesowise: PesowiseScene,`. Every entry in `compactScenes` is now a designed scene; if nothing else imports `BasicVignette`, leave the file in place until Task 8.1 removes the basic scenes. In `src/app/globals.css`, after the LiPAD scene import, add:
+and change the entries to `keyclick: KeyclickScene,`, `med42: Med42Scene,` and `pesowise: PesowiseScene,`. Every entry in `compactScenes` is now a designed scene, so delete the line `import { BasicVignette } from "./basic/BasicVignette";` (an unused import fails lint); the file itself stays until Task 8.1 removes the basic scenes. In `src/app/globals.css`, after the LiPAD scene import, add:
 
 ```css
 @import "../scenes/keyclick/scene.css" layer(scenes);
@@ -12095,7 +12110,7 @@ Goal: prove every success criterion in spec §1 on the finished page (§12 budge
 grep -rn "basic" src --include=*.ts --include=*.tsx --include=*.css
 ```
 
-Expected: only `src/scenes/basic/*`, the `@import "../scenes/basic/scene.css" layer(scenes);` line in `globals.css`, and (if still present) the two `BasicWorld` / `BasicVignette` imports in `src/scenes/index.ts`. No registry entry and no scene map entry may use them; if one does, its phase is unfinished: stop and report it.
+Expected: only `src/scenes/basic/*` and the `@import "../scenes/basic/scene.css" layer(scenes);` line in `globals.css` (Tasks 6.3 and 7.3 already removed the `BasicWorld` / `BasicVignette` imports). No registry entry and no scene map entry may use them; if one does, its phase is unfinished: stop and report it.
 
 ```bash
 git rm -r src/scenes/basic
@@ -12143,6 +12158,7 @@ For each failing number, apply the matching lever on this branch, re-run that me
 - **HTML over 80 KB or DOM over budget:** the largest stage in `budget.json` first; replace repeated drawings with `<use>` symbols from `<Sprite />` and drop desktop-only parts that cost the most.
 - **LCP over 2,500 ms:** read the LCP element in `lh-summary.mjs` output. If it is the hero portrait at mobile, switch its `next/image` from `fetchPriority="high"` + `loading="eager"` to `preload` (spec §7) and re-measure; if it is text, try `experimental: { inlineCss: true }` in `next.config.ts` and keep it only if the median LCP improves.
 - **Frames at 4x CPU over budget in one world:** `who.py <slug> 4` names the cost. Pointer parallax is the usual one: it switches itself off when frames run long; if it does not, lower that stage's `data-k` values. A failing loop: pack more cycles per iteration or move the moving part into its own element.
+- **Dropped frames when a stage scrolls into view** (`smooth.py` scroll phase, DevTools Performance shows a long Layerize as a stage enters): the `.paused` rule in `stage.css` that drops `will-change` re-promotes layers on entry. Remove that one rule, re-run `smooth.py 1` and `smooth.py 4`, and keep whichever version drops fewer frames; record both in the PR. Also check in the DevTools Layers panel that `.layer-mid` (which never moves on its own) can lose `will-change` without new jank.
 - A budget that cannot be met after these levers goes to Wrenz in writing on the PR (spec §12): the number, what was tried, and the trade-off; he decides.
 
 - [ ] **Step 5: Commit and open the PR**
@@ -12514,3 +12530,30 @@ Wrenz may also paste the production URL into Google's Rich Results Test and the 
 - [ ] **Step 5: Close out the handoff**
 
 On a branch from `master`, set the first line of the `## RESUME HERE` block in `docs/HANDOFF.md` to "Spec 1 shipped to production on <date> (release PR #<N>). Next: Spec 2, the `/work/[slug]` case studies." Commit, open a PR into `master`, and let Wrenz merge it.
+
+---
+
+## Appendix: review log
+
+**Fable 5.1, 2026-10-11. Verdict: approve with fixes** (2 MUST-FIX, 6 SHOULD-FIX, 8 NICE-TO-HAVE). Full review:
+`C:\Users\OASIS\scratch-portfolio\plan-review\fable-plan-review.md`. Every item was checked against the plan and the
+repo before acting on it.
+
+| # | Finding | Disposition |
+|---|---|---|
+| M1 | The whole-page "no stray copy" test (Task 4.3) fails on the nav labels, which `pageCopy()` did not list | Fixed: `pageCopy()` starts with the nav labels (Task 1.2); the Task 4.3 guidance now says where missing copy goes |
+| M2 | Unused `BasicWorld` / `BasicVignette` imports fail lint after Tasks 6.3 and 7.3 | Fixed: both tasks delete the import; Task 8.1's expectation updated |
+| S1 | `scroll-behavior: smooth` turns the tools' `scrollTo` into smooth scrolls | Fixed further than asked: the rule is gone (the spec never asked for it; native scroll stays untouched) and the tools scroll with `behavior: 'instant'` |
+| S2 | POS ear flick and blink are SVG-internal WAAPI tweens not listed as a deviation | Fixed: clarification 17 + a `who.py pos 4` check in Task 3.4 with a delete-it fallback |
+| S3 | `will-change` pinned on every layer of every stage | Fixed: `.paused` stages drop `will-change` (Task 1.4), with a measured revert lever in Task 8.1. Note: the review's ~100 MB texture estimate is high (Chrome does not raster off-screen tiles); the layer-count cost per frame is the real reason |
+| S4 | `git rm` aborts if `keyclick-automator-logo.png` is absent | Fixed with `--ignore-unmatch`. The file does exist on `master` since PR #1 merged; the reviewer's checkout predates it |
+| S5 | `chunks.mjs` trusts that each choreography has its own chunk | Fixed: warns when choreographies share a chunk and fails when GSAP is bundled into one |
+| S6 | Contact's straight edge, the stroke `icon.svg`, the OG circle and smooth scrolling were undeclared deviations | Fixed: clarifications 18-20 (smooth scrolling was removed instead) |
+| N1 | Three wrong test counts | Fixed (content-integrity 12, world 18, page 9) |
+| N2 | The hero's `overflow: clip` hides the hill edge's 1 px overlap | Fixed: `overflow-clip-margin: 1px` on `.hero` |
+| N3 | `@types/jsdom@30` may not exist | Not changed: verified on npm, `@types/jsdom` is at 30.0.0 |
+| N4 | The contract snapshot ignores text | Fixed: it compares leaf text too (only the time-log choreography writes text, and it restores it) |
+| N5 | `perf.py`'s optional DPR argument | Not changed: documented in its usage line, unused by the gates |
+| N6 | `shoot.py` reads computed, not rendered, size of SVG `<text>` | Not changed: the only SVG text (POS sack and jar) is sized for the rule and hidden on the mobile grid |
+| N7 | Engine tests find observers by `rootMargin` | Not changed: exactly one observer has no margin; a test would fail loudly if that changed |
+| N8 | The vignette mascot wrapper must not animate | Fixed: added to the Phase 7 rules |
