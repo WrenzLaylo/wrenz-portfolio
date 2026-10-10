@@ -1,7 +1,7 @@
 # Portfolio redesign, Spec 1: design system, motion engine, home page, technical SEO
 
 - **Date:** 2026-10-11 (revised the same day after the Fable 5.1 review)
-- **Status:** Fable 5.1 review applied (verdict: approve with fixes); awaiting Wrenz's review
+- **Status:** APPROVED by Wrenz 2026-10-11 (after the Fable 5.1 review, verdict: approve with fixes, was applied)
 - **Scope:** Spec 1 of 2. Spec 2 (the `/work/[slug]` case-study pages) is written after this one and
   builds on the components defined here.
 - **Inputs:** `HANDOFF.md` (repo root, untracked; decisions, rejected rounds, the Fable SEO audit) and the
@@ -282,7 +282,7 @@ runtime and the choreography address parts by stable names.
 
 | World | Kind | Source of the content |
 |---|---|---|
-| Pig Feeds POS | beforeAfter | Wrenz confirms the "before" (draft in Appendix A) |
+| Pig Feeds POS | beforeAfter | the owner's notebook, as described in the POS specs (confirmed by Wrenz 2026-10-11) |
 | AGG Doors time-log | flow | the pipeline itself |
 | AGG Doors service areas | stat | 178 suburb pages, all with unique copy |
 | Katiwala | flow | the provider verification flow |
@@ -530,7 +530,8 @@ against `next build && next start`), before every visual PR, results pasted into
 
 ## 15. Delivery
 
-1. Wrenz merges PR #1 (KeyClick) into `master`. Its copy then moves into `projects.ts` as a vignette.
+1. PR #1 (KeyClick) is merged into `master` (done 2026-10-11, e0e96de). Its copy then moves into `projects.ts`
+   as a vignette.
 2. An integration branch `redesign` is created from `master`. Every task gets its own branch and a PR into
    `redesign`, with its own Vercel preview. Wrenz reviews each PR on GitHub. Nothing reaches `master` (the
    live site) until the final `redesign` to `master` PR, which Wrenz merges.
@@ -574,8 +575,9 @@ Processes: only stop process IDs we started ourselves. Never stop processes by n
 
 ## Appendix A: draft copy
 
-Drafts follow the copy rules. Wrenz confirms every fact in the content PR; anything he does not confirm is
-cut, not guessed.
+Drafts follow the copy rules. Wrenz confirmed the facts below on 2026-10-11 (POS before line, service areas
+numbers and tags, Katiwala points, the vignette heading). Any new fact added later is confirmed in its PR;
+anything he does not confirm is cut, not guessed.
 
 **Section headings:** Work: "Built around actual operations." More work: "Smaller builds, same habits."
 
@@ -587,7 +589,7 @@ cut, not guessed.
 - Points: Checkout records the sale and takes the stock off the shelf in one transaction. / Customer
   passbooks keep every charge, payment and opening balance. / The dashboard keeps *benta* apart from
   *cash na pumasok*, the cash that actually came in.
-- Before/after (to confirm): Before: sales and credit written by hand in a notebook. After: every sale,
+- Before/after: Before: sales and credit written by hand in a notebook. After: every sale,
   payment and balance in one till, with stock that matches the shelf.
 
 **AGG Doors time-log** (status `public`, via the public adaptation). Tags: Python, Google Chat API, Sheets API, Drive API, GitHub
@@ -600,12 +602,12 @@ Actions. Link: Public adaptation (github.com/WrenzLaylo/MVC-Time-Logs-Automation
 - Flow: A Chat post says "Login 7:23". / The pipeline parses and checks it. / The row is written, then read
   back.
 
-**AGG Doors service areas** (status `public`: client work on live public pages). Tags: WordPress, REST API, Python, ACF, Schema.org
-(to confirm). Link: Live pages (aggdoors.com.au).
+**AGG Doors service areas** (status `public`: client work on live public pages). Tags: WordPress, REST API, Python, ACF, Schema.org.
+Link: Live pages (aggdoors.com.au).
 - Summary: WordPress REST API automation that builds and maintains 178 suburb Service Area pages for a
   Melbourne garage door company.
-- Points: Groups 512 searchable suburbs into regions, with A to Z lists and a region sitemap. / Adds 357
-  redirects so old suburb links still land on the right page. / Writes every suburb page from local data,
+- Points: Groups 512 searchable suburbs into regions, with A to Z lists and a region sitemap. / Repoints 357
+  old suburb links to the new region pages, so old links still land in the right place. / Writes every suburb page from local data,
   so no two pages read the same.
 - Stat: 178, "suburb pages, none of them boilerplate".
 
@@ -664,3 +666,12 @@ revision:
 | 11 | Agent Island capture risk | §8, §16 (designed panel; only Wrenz captures) |
 | 12 | Phase order and an explicit tooling phase | §15 |
 | 13-21 | next/image client code in the JS budget; AVIF config; LCP `preload` check; static scene lab; `popoverTarget` + fallback; hero height; three-value `status`; one source for award text; gloss test format; 1024 px parallax gate | §6, §7, §10, §12, §5, §14, §11 |
+
+**Wrenz, 2026-10-11. Verdict: approved.**
+
+- Accepted dropping the ScrollTrigger fallback: browsers without CSS scroll timelines get no parallax (§2, §11).
+- Confirmed the Appendix A facts: the POS before line, the service areas numbers and tags, the Katiwala points,
+  and "Smaller builds, same habits."
+- One correction from the fact check: the 357 redirects already existed in Rank Math and were repointed to the
+  region pages, not added. The service areas point now says "Repoints".
+- PR #1 (KeyClick) merged into `master` (e0e96de), completing delivery step 1.
