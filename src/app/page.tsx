@@ -175,13 +175,43 @@ export default function Home() {
             </div>
           </article>
 
+          <article className="project project-keyclick" id="keyclick">
+            <div className="project-copy">
+              <div className="project-index">03 / WINDOWS DESKTOP PRODUCT</div>
+              <h3>KeyClick Automator</h3>
+              <p className="project-summary">A Windows desktop app that turns keyboard and mouse automation into a visual sequence users can inspect, tune, save, and stop safely.</p>
+              <ul className="project-points">
+                <li><Check /> Records key presses, shortcuts, typed text, clicks, scrolling, and pointer drags.</li>
+                <li><Check /> Supports per-step timing, repeats, reordering, temporary disabling, and reusable profiles.</li>
+                <li><Check /> Ships as portable and installer builds with global controls and an emergency-stop fail-safe.</li>
+              </ul>
+              <div className="tags"><span>Python</span><span>PySide6</span><span>Qt Quick</span><span>PyAutoGUI</span><span>PyInstaller</span></div>
+              <div className="link-row"><a className="text-link" href="https://github.com/WrenzLaylo/KeyClickAutomator/releases/latest" target="_blank" rel="noreferrer">Download for Windows <ArrowUpRight /></a><a className="text-link muted" href="https://github.com/WrenzLaylo/KeyClickAutomator" target="_blank" rel="noreferrer">Source <ArrowUpRight /></a></div>
+            </div>
+            <div className="project-visual keyclick-window" aria-label="Illustration of the KeyClick Automator desktop application">
+              <div className="keyclick-titlebar"><span className="keyclick-appmark"><Image src="/keyclick-automator-logo.png" alt="" width={28} height={28} /> KeyClick Automator</span><span className="keyclick-window-controls">—　□　×</span></div>
+              <div className="keyclick-layout">
+                <aside className="keyclick-nav"><div className="keyclick-logo"><Image src="/keyclick-automator-logo.png" alt="" width={42} height={42} /></div><span className="active">⌘</span><span>＋</span><span>⚙</span><small>v3</small></aside>
+                <div className="keyclick-workspace">
+                  <div className="keyclick-heading"><div><small>ACTIVE PROFILE</small><strong>Morning workflow</strong></div><button>+ New action</button></div>
+                  <div className="sequence-label"><span>SEQUENCE</span><b>3 actions</b></div>
+                  <div className="action-card selected"><span className="action-number">01</span><div><strong>Press shortcut</strong><small>CTRL + SHIFT + S</small></div><span className="action-delay">0.2s</span><i /></div>
+                  <div className="action-card"><span className="action-number">02</span><div><strong>Type text</strong><small>Daily report complete</small></div><span className="action-delay">0.4s</span><i /></div>
+                  <div className="action-card"><span className="action-number">03</span><div><strong>Left click</strong><small>Saved pointer position</small></div><span className="action-delay">0.8s</span><i /></div>
+                  <div className="keyclick-runbar"><button className="start-action">▶ Start <kbd>F6</kbd></button><button className="stop-action">■ Stop <kbd>F9</kbd></button><span>Ready · 1 cycle</span></div>
+                </div>
+                <aside className="keyclick-inspector"><small>ACTION INSPECTOR</small><h4>Press shortcut</h4><label>Shortcut</label><div className="shortcut-field"><kbd>CTRL</kbd><b>+</b><kbd>SHIFT</kbd><b>+</b><kbd>S</kbd></div><label>Repeat</label><div className="inspector-row"><span>1 time</span><span>Delay 0.2s</span></div><button>Test once</button><p><Check /> Emergency stop is ready</p></aside>
+              </div>
+            </div>
+          </article>
+
           <div className="project-pair">
             <article className="project-small medical-project">
               <div className="small-visual medical-ui">
                 <div className="med-nav"><span className="med-icon">+</span><b>Med42 Clinical Suite</b><small>AI Enabled</small></div>
                 <div className="med-form"><p>New Diagnosis</p><div className="input-row"><span>Patient Name</span><span>Patient ID</span></div><div className="textarea">Describe patient symptoms...</div><button>Analyze with Med42-v3 AI</button><div className="review-row"><span>Save Draft</span><b>Submit for Review</b></div></div>
               </div>
-              <div className="small-copy"><div className="project-index">03 / FULL-STACK + AI</div><h3>Med42 Clinical Suite</h3><p>A clinical workflow with versioned diagnosis and medication APIs, AI response streaming, review states, JWT sessions, rate limiting, and audit logs.</p><div className="tags"><span>Django REST</span><span>PostgreSQL</span><span>Redis</span><span>React</span></div><div className="link-row"><a className="text-link" href="https://medical-diagnosis-app-two.vercel.app" target="_blank" rel="noreferrer">Live application <ArrowUpRight /></a><a className="text-link muted" href="https://github.com/WrenzLaylo/medical-diagnosis-app" target="_blank" rel="noreferrer">Source <ArrowUpRight /></a></div></div>
+              <div className="small-copy"><div className="project-index">04 / FULL-STACK + AI</div><h3>Med42 Clinical Suite</h3><p>A clinical workflow with versioned diagnosis and medication APIs, AI response streaming, review states, JWT sessions, rate limiting, and audit logs.</p><div className="tags"><span>Django REST</span><span>PostgreSQL</span><span>Redis</span><span>React</span></div><div className="link-row"><a className="text-link" href="https://medical-diagnosis-app-two.vercel.app" target="_blank" rel="noreferrer">Live application <ArrowUpRight /></a><a className="text-link muted" href="https://github.com/WrenzLaylo/medical-diagnosis-app" target="_blank" rel="noreferrer">Source <ArrowUpRight /></a></div></div>
             </article>
 
             <article className="project-small katiwala-project">
@@ -192,13 +222,13 @@ export default function Home() {
                   <div className="phone phone-two"><div className="phone-head">Provider verification</div><div className="verify-step done"><Check /> Government ID</div><div className="verify-step done"><Check /> Face capture</div><div className="verify-step"><span>3</span> Review & submit</div><div className="pending-badge">Pending verification</div></div>
                 </div>
               </div>
-              <div className="small-copy"><div className="project-index">04 / MARKETPLACE</div><h3>Katiwala</h3><p>A Filipino home-services marketplace with separate customer and provider journeys, booking flows, identity capture, editable OCR data, and pending verification states.</p><div className="tags"><span>Expo</span><span>React Native</span><span>TypeScript</span><span>Prisma</span></div><p className="project-note">Private product · active development</p></div>
+              <div className="small-copy"><div className="project-index">05 / MARKETPLACE</div><h3>Katiwala</h3><p>A Filipino home-services marketplace with separate customer and provider journeys, booking flows, identity capture, editable OCR data, and pending verification states.</p><div className="tags"><span>Expo</span><span>React Native</span><span>TypeScript</span><span>Prisma</span></div><p className="project-note">Private product · active development</p></div>
             </article>
           </div>
 
           <article className="project project-rockstar">
             <div className="project-copy">
-              <div className="project-index">05 / PRODUCTION EXPERIENCE</div>
+              <div className="project-index">06 / PRODUCTION EXPERIENCE</div>
               <h3>Everyday Rockstar™</h3>
               <p className="project-summary">A conversion-focused coaching and community platform with a cinematic editorial direction, custom motion, responsive behavior, and production-grade delivery.</p>
               <ul className="project-points">
