@@ -46,7 +46,8 @@ const choreo: Choreo = (root, { gsap, mobile, skipEntrance }) => {
 
   // Each eat cycle, once the head is back up, the ears flick and the eyes blink twice. Short WAAPI
   // flourishes, skipped off-screen and where Element.animate is missing.
-  const lookAtYou = () => {
+  const lookAtYou = (event: Event) => {
+    if (event.target !== head) return; // the jaw loop inside the head bubbles its own events here
     if (root.classList.contains("paused")) return;
     flourishes = flourishes.filter((a) => a.playState !== "finished");
     ears.forEach((ear, k) => {
