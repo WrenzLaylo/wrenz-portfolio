@@ -418,32 +418,40 @@ after approval".)
 **The choreography contract.** The start state must be applied while the world is still off-screen. An
 IntersectionObserver callback arrives a frame after the edge has already painted, so a choreography that
 first sets its start state "on entry" would show the end state, snap to the start state, then animate.
-The slice avoids this with `gsap.set` at init (scenes.js 149-153, 230-236). So a choreography is
-**prepared** as soon as its module is ready, and **entered** later:
+The slice avoids this with `gsap.set` at init (scenes.js 149-153, 230-236); the WAAPI choreographies write
+the start frame inline at prepare in the same way (`entrance()` in `src/motion/waapi.ts`). So a choreography
+is **prepared** as soon as its module is ready, and **entered** later.
+
+(Changed 2026-10-11: GSAP removed, see "Decisions after approval" in Section 2. `SceneEnv` no longer has a
+`gsap` field, and the handle is `SceneHandle` with a `name`. This block is the contract as in
+`src/motion/types.ts`.)
 
 ```ts
 export type SceneEnv = {
-  gsap: typeof import("gsap").gsap;
-  mobile: boolean;       // the stage is on its mobile grid (container width ≤ 700 px)
+  mobile: boolean;       // the stage is on its mobile grid (width < STAGE_GRID_SWITCH, 760 px)
   pointer: boolean;      // matchMedia("(hover: hover) and (pointer: fine) and (min-width: 1024px)")
   skipEntrance: boolean; // true when the scene was already visible when its module arrived
 };
-export type Scene = { enter(): void; cleanup(): void };
-// prepare: applies the start state only when !env.skipEntrance, wires interactions, returns the handle
-export type Choreo = (root: HTMLElement, env: SceneEnv) => Scene;
+/** `name` is the literal "choreo:<folder>"; tools/perf/chunks.mjs finds each chunk by it. */
+export type SceneHandle = { name: string; enter(): void; cleanup(): void };
+// prepare: applies the start state only when !env.skipEntrance, wires interactions, returns the handle.
+// It animates with element.animate() through src/motion/waapi.ts (transform and opacity keyframes,
+// cubic-bezier eases, never linear()); without the Web Animations API it keeps the server end state.
+export type Choreo = (root: HTMLElement, env: SceneEnv) => SceneHandle;
 ```
 
-`enter()` plays the entrance (or does nothing when skipping) and then adds `.live`. `cleanup()` kills its
-tweens, removes listeners and any elements it appended, and restores the server end state.
+`enter()` plays the entrance (or does nothing when skipping) and then adds `.live`. `cleanup()` cancels its
+animations, removes listeners and any elements it appended, and restores the server end state.
 
-The contract does not depend on GSAP beyond `env.gsap`, so a choreography can be rewritten with the Web
-Animations API without touching the runtime. That is the first lever if the 4x CPU budget fails.
+The contract did not depend on GSAP beyond `env.gsap`, so the choreographies were rewritten with the Web
+Animations API without changing the runtime's shape (2026-10-11, the first lever after the 4x CPU budget
+failed at the Phase 3 gate).
 
 **The runtime** (`MotionRuntime.tsx`, `"use client"`, renders nothing, mounted once by `page.tsx`):
 1. Starts in `useEffect`, after hydration. If reduced motion is set, it only installs the nav listener.
 2. One `IntersectionObserver` watches every `[data-scene]`. When a world is within 50% of a viewport of the
-   screen, it starts `Promise.all([import("gsap"), registry[slug]()])`, so exactly one GSAP chunk exists.
-   As soon as both resolve it calls the choreography (prepare), with `skipEntrance` true if the world is
+   screen, it starts `registry[slug]()` (changed 2026-10-11: there is no GSAP chunk to load any more).
+   As soon as it resolves it calls the choreography (prepare), with `skipEntrance` true if the world is
    already visible at that moment.
 3. When a prepared world enters the viewport it calls `enter()`. A world prepared with `skipEntrance`
    gets `enter()` at once, which just adds `.live`: no snap back to the start state.
