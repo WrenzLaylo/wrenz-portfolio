@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -7,6 +8,8 @@ import { Work } from "@/components/Work";
 import { fullProjects, projectBySlug } from "@/content/projects";
 import { site } from "@/content/site";
 import type { Slug, Varied } from "@/content/types";
+import { STAGE_GRID_SWITCH } from "@/scenes/grid";
+import { cssBlock, cssRule } from "./helpers";
 
 const parse = (markup: string) => new JSDOM(`<body>${markup}</body>`).window.document;
 const work = parse(renderToStaticMarkup(<Work />));
@@ -67,6 +70,25 @@ describe("Work", () => {
   it("fills each hill edge with the next world's tint, and the last with paper", () => {
     const fills = worlds.map((w) => w.querySelector(":scope > .hill-edge path")?.getAttribute("style"));
     expect(fills).toEqual([...fullProjects.slice(1).map((p) => `fill:var(--color-tint-${p.slug})`), "fill:var(--color-paper)"]);
+  });
+});
+
+describe("world.css", () => {
+  const css = readFileSync("src/components/world.css", "utf8");
+  const stacked = cssBlock(css, "@media (max-width: 1023px)") ?? "";
+
+  // Stacked below 1024 px, a split world's stage took the whole 740 px column at 820 and drew the 358 px
+  // mobile grid at 2.07x (Phase 3 MUST-FIX 2). Its figure is capped at the 1024 split's figure width
+  // (1024 - 80 gutter - 340 copy - 40 gap = 564 px), so the stage scales as it does there (1.58x).
+  it("caps a stacked split world's figure at the 1024 split's width, centred", () => {
+    const fig = cssRule(stacked, ".world-split-start .w-fig, .world-split-end .w-fig");
+    expect(fig?.get("width")).toBe(`min(100%, ${1024 - 80 - 340 - 40}px)`);
+    expect(fig?.get("justify-self")).toBe("center");
+    expect(1024 - 80 - 340 - 40).toBeLessThan(STAGE_GRID_SWITCH); // the capped stage stays on its mobile grid
+  });
+
+  it("leaves the full-bleed worlds' figures edge to edge", () => {
+    expect(stacked).not.toMatch(/\.world-bleed \.w-fig/);
   });
 });
 
