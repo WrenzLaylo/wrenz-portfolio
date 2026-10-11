@@ -6,6 +6,7 @@ import MotionRuntime from "@/motion/MotionRuntime";
 import { Sprite } from "@/components/Sprite";
 import { sections } from "@/content/sections";
 import { site } from "@/content/site";
+import { buildJsonLd, jsonLdHtml } from "@/lib/jsonld";
 
 // Shell: Task 3.2 replaces the hero section, Tasks 3.x add the worlds, Phase 4 fills the other sections.
 const shellSections = [sections.work, sections.moreWork, sections.capabilities, sections.experience, sections.about, sections.contact];
@@ -13,6 +14,7 @@ const shellSections = [sections.work, sections.moreWork, sections.capabilities, 
 export default function Home() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(buildJsonLd()) }} />
       <Sprite />
       <a className="skip" href="#main">
         {site.labels.skip}
