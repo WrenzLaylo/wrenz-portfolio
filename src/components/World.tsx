@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { site } from "@/content/site";
 import type { FullProject } from "@/content/types";
 import { Rich } from "@/lib/rich";
@@ -23,7 +24,14 @@ export function World({ project, next, index }: { project: FullProject; next: st
     >
       <div className={project.layout === "bleed" ? "world-grid" : "wrap world-grid"}>
         <div className="w-copy">
-          <h3 id={headingId}>{project.name}</h3>
+          <h3 id={headingId}>
+            {project.name.split(" ").map((word, i) => (
+              <Fragment key={`${word}-${i}`}>
+                {i > 0 ? " " : null}
+                {word.includes("-") ? <span className="nowrap">{word}</span> : word}
+              </Fragment>
+            ))}
+          </h3>
           <p className="w-summary">
             <Rich text={project.summary} />
           </p>

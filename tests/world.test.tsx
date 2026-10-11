@@ -53,6 +53,12 @@ describe("Work", () => {
     for (const list of work.querySelectorAll(".tags")) expect(list.getAttribute("aria-label")).toBe(site.labels.builtWith);
   });
 
+  it("keeps hyphenated words whole in the h3 without changing its text", () => {
+    const h3 = work.getElementById("time-log-h") as HTMLElement;
+    expect(h3.querySelector(".nowrap")?.textContent).toBe("time-log");
+    expect(h3.textContent).toBe(projectBySlug("time-log").name);
+  });
+
   it("captions the time-log figure", () => {
     const caption = fullProjects.find((p) => p.slug === "time-log")?.caption;
     expect(work.querySelector('section[data-world="time-log"] figure > figcaption')?.textContent).toBe(caption);

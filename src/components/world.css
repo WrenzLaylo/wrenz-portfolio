@@ -72,6 +72,9 @@
     margin-left: max(40px, calc((100% - 1280px) / 2));
     padding: 32px; border-radius: var(--radius-lg); background: var(--color-paper);
   }
+  .world-bleed .w-fig { align-self: stretch; display: flex; flex-direction: column; }
+  .world-bleed .stage-c { flex: 1; display: grid; }
+  .world-bleed .stage { align-self: stretch; aspect-ratio: auto; min-height: calc(100cqw * 720 / 1280); }
   .world-bleed .w-points li { font-size: 15px; }
   .world-bleed .caption { padding-right: max(40px, calc((100% - 1280px) / 2)); }
 }
@@ -110,3 +113,5 @@
   .world-bleed .caption { padding-right: 16px; }
   .caption { text-align: left; font-size: 13px; }
 }
+
+.nowrap { white-space: nowrap; }
