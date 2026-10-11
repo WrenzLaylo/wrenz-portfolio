@@ -24,3 +24,4 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm test -- --run
       - run: npm run build
+      - run: node tools/perf/chunks.mjs
