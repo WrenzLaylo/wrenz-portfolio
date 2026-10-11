@@ -1,0 +1,39 @@
+.nav { position: sticky; top: 0; z-index: 40; height: 64px; background: var(--color-paper); }
+.nav-bar { height: 100%; display: flex; align-items: center; gap: 28px; }
+.wordmark { display: inline-flex; align-items: center; min-height: 44px; margin-right: auto; font: 800 22px/1 var(--font-display); letter-spacing: -0.02em; text-decoration: none; }
+.nav-menu a { font-weight: 600; font-size: 16px; text-decoration: none; padding: 12px 0; }
+.nav-menu a:hover { text-decoration: underline; text-decoration-thickness: 3px; text-decoration-color: var(--color-yolk); text-underline-offset: 6px; }
+.nav-toggle {
+  display: none; width: 44px; height: 44px; border-radius: 999px; border: 2px solid var(--color-ink);
+  background: var(--color-white); color: var(--color-ink); align-items: center; justify-content: center; cursor: pointer;
+}
+.nav-toggle .icon { width: 22px; height: 22px; }
+
+/* Desktop: the popover element is shown inline. Author styles beat the UA's [popover] rules. */
+@media (min-width: 768px) {
+  .nav-menu {
+    display: flex; gap: 28px; position: static; inset: auto; width: auto; height: auto;
+    margin: 0; padding: 0; border: 0; background: none; color: inherit; overflow: visible;
+  }
+}
+
+/* Mobile: the links live in a popover opened by the toggle (toggling, Escape and light dismiss are built in). */
+@media (max-width: 767px) {
+  .nav-bar { gap: 10px; }
+  .wordmark { font-size: 20px; }
+  .nav-toggle { display: inline-flex; }
+  .nav-menu:popover-open {
+    display: flex; flex-direction: column; position: fixed; inset: 64px 16px auto auto; width: 220px;
+    margin: 0; padding: 8px; border: 2px solid var(--color-ink); border-radius: var(--radius-md);
+    background: var(--color-white); color: var(--color-ink);
+  }
+  .nav-menu a { display: flex; align-items: center; min-height: 48px; padding: 12px 14px; }
+}
+
+/* No Popover API: the links render inline under the bar (accepted fallback, spec §10). */
+@supports not selector(:popover-open) {
+  .nav { height: auto; }
+  .nav-bar { flex-wrap: wrap; padding-block: 10px; }
+  .nav-toggle { display: none !important; }
+  .nav-menu { display: flex; gap: 20px; order: 3; flex-basis: 100%; }
+}
