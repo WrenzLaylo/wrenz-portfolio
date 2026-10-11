@@ -23,9 +23,10 @@
 [data-scene="pos"] .coin-y span { font: 800 calc(17 * var(--u))/1 var(--font-display); color: var(--color-ink); }
 [data-scene="pos"] .jar { transform-origin: 50% 100%; }
 [data-scene="pos"] .sack { transform: rotate(96deg); transform-origin: 50% 50%; }
-/* Without .live (no JavaScript, reduced motion, or before the entrance) the pellets rest as a still pour. */
+/* Without .live (no JavaScript, reduced motion, or before the entrance) the pellets rest as a still pour.
+   No display here: .pos already blockifies the <i>, and a display in this later layer would beat .g-d. */
 [data-scene="pos"] .pellet {
-  display: block; aspect-ratio: 1; border-radius: 50%; background: #8C5A2B;
+  aspect-ratio: 1; border-radius: 50%; background: #8C5A2B;
   transform: translate(calc(var(--dr) * 18 * var(--u)), calc(var(--i) * 10 * var(--u)));
 }
 

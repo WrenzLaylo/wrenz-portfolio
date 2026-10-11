@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -61,5 +62,21 @@ describe("POS scene", () => {
 
   it("hides the sack and jar lettering on the mobile grid", () => {
     for (const text of stage.querySelectorAll("text")) expect(text.classList.contains("g-d")).toBe(true);
+  });
+
+  // The scenes layer beats the components layer whatever the specificity, so a display set on a part in
+  // scene.css would override `.stage .g-d { display: none }` and show desktop-only parts on the mobile grid.
+  it("never sets display on a grid-only part, so .g-d and .g-m keep working", () => {
+    const css = readFileSync("src/scenes/pos/scene.css", "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    const shared = new Set(["g-d", "g-m", "pos", "loop"]);
+    const gridOnly = new Set([...stage.querySelectorAll(".g-d, .g-m")].flatMap((el) => [...el.classList]).filter((c) => !shared.has(c)));
+    expect(gridOnly.size).toBeGreaterThan(0);
+    for (const [, selectors, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      if (!/(^|[;\s])display\s*:/.test(body)) continue;
+      for (const selector of selectors.split(",")) {
+        const subject = selector.trim().split(/\s+|>|\+|~/).pop() ?? "";
+        for (const c of gridOnly) expect(new RegExp(`\\.${c}(?![\\w-])`).test(subject), `${selector.trim()} sets display on .${c}`).toBe(false);
+      }
+    }
   });
 });
