@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { backOut, bounce, canAnimate, EASE, entrance, px, span, tracker } from "@/motion/waapi";
-import { animationsOf, ease, FakeAnimation, installFakeWaapi, removeFakeWaapi, sample } from "./helpers";
+import { animationsOf, declarations, ease, FakeAnimation, installFakeWaapi, removeFakeWaapi, sample } from "./helpers";
 
 // GSAP 3's ease formulas (gsap-core.js), the reference the choreographies were written against.
 const gsap = {
@@ -113,28 +113,47 @@ describe("entrance", () => {
   const a = () => document.getElementById("a") as HTMLElement;
   const b = () => document.getElementById("b") as HTMLElement;
 
-  it("creates every animation paused, over the whole entrance, and writes no inline style", () => {
+  it("holds each part's start frame with inline styles until play(), and creates no animation before it", () => {
+    // A paused animation would hold the start frame too, but it makes its element a composited layer for
+    // as long as the world waits off-screen, and every full re-layerization costs more per layer.
     const intro = entrance(1000);
     intro.add(a(), [{ opacity: 0 }, { opacity: 1 }], { dur: 300 });
     intro.add(b(), [{ transform: "scale(0)" }, { transform: "scale(1)" }], { at: 500, dur: 300 });
-    expect(FakeAnimation.all.map((x) => x.playState)).toEqual(["paused", "paused"]);
-    expect(FakeAnimation.all.map((x) => x.options.duration)).toEqual([1000, 1000]);
-    expect(a().getAttribute("style")).toBeNull();
-    vi.advanceTimersByTime(5000);
-    expect(FakeAnimation.all.map((x) => x.playState)).toEqual(["paused", "paused"]);
+    expect(FakeAnimation.all).toHaveLength(0);
+    expect(a().style.opacity).toBe("0");
+    expect(b().style.transform).toBe("scale(0)");
   });
 
-  it("plays them together and calls back once when they end", () => {
+  it("plays them together over the whole entrance, clears the inline start frames, and calls back once when they end", () => {
+    b().style.setProperty("opacity", "0.5", "important");
     const intro = entrance(1000);
     intro.add(a(), [{ opacity: 0 }, { opacity: 1 }], { dur: 300 });
     intro.add(b(), [{ opacity: 0 }, { opacity: 1 }], { at: 700, dur: 300 });
     const done = vi.fn();
     intro.play(done);
+    expect(FakeAnimation.all.map((x) => [x.playState, x.options.duration])).toEqual([
+      ["running", 1000],
+      ["running", 1000],
+    ]);
+    expect(declarations(a())).toBe("");
+    expect(b().style.getPropertyValue("opacity")).toBe("0.5"); // a server value is put back exactly
+    expect(b().style.getPropertyPriority("opacity")).toBe("important");
     vi.advanceTimersByTime(999);
     expect(done).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);
     expect(done).toHaveBeenCalledOnce();
     expect(animationsOf(a())).toHaveLength(0);
+  });
+
+  it("puts the inline styles back when cancelled before it plays", () => {
+    const intro = entrance(1000);
+    intro.add(a(), [{ transform: "scale(0)", opacity: 0 }, { transform: "scale(1)", opacity: 1 }], { dur: 300 });
+    intro.cancel();
+    expect(declarations(a())).toBe("");
+    const done = vi.fn();
+    intro.play(done);
+    expect(done).toHaveBeenCalledOnce();
+    expect(FakeAnimation.all).toHaveLength(0);
   });
 
   it("ends at once when it has nothing to play", () => {
@@ -167,22 +186,25 @@ describe("entrance", () => {
     vi.advanceTimersByTime(2000);
     expect(done).not.toHaveBeenCalled();
     expect(FakeAnimation.all[0].playState).toBe("idle");
+    expect(declarations(a())).toBe("");
   });
 
   it("skips missing elements", () => {
     const intro = entrance(1000);
-    expect(intro.add(null, [{ opacity: 0 }, { opacity: 1 }], { dur: 300 })).toBeUndefined();
+    intro.add(null, [{ opacity: 0 }, { opacity: 1 }], { dur: 300 });
+    intro.play(() => {});
     expect(FakeAnimation.all).toHaveLength(0);
   });
 });
 
 describe("without the Web Animations API", () => {
-  it("animates nothing and still ends the entrance", () => {
+  it("writes and animates nothing, and still ends the entrance", () => {
     document.body.innerHTML = '<div id="a"></div>';
     const el = document.getElementById("a") as HTMLElement;
     expect(canAnimate(el)).toBe(false);
     const intro = entrance(1000);
-    expect(intro.add(el, [{ opacity: 0 }, { opacity: 1 }], { dur: 300 })).toBeUndefined();
+    intro.add(el, [{ opacity: 0 }, { opacity: 1 }], { dur: 300 });
+    expect(el.getAttribute("style")).toBeNull();
     const done = vi.fn();
     intro.play(done);
     expect(done).toHaveBeenCalledOnce();

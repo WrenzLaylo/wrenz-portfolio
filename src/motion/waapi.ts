@@ -82,35 +82,59 @@ export function span(keyframes: Keyframe[], { at = 0, dur, ease, before }: Tween
   return out;
 }
 
+type Part = { el: HTMLElement | SVGElement; keyframes: Keyframe[]; saved: Array<[string, string, string]> };
+
 /** One entrance: every animation in it runs from the entrance's start to `end` ms (see span()). Chrome
  *  re-layerizes the whole page each time a compositor animation starts after a delay or finishes on its
  *  own, so an entrance whose animations start together and finish together pays for that once each
- *  instead of once per tween (waapi-experiment-report.md, Task 3.7a). Animations are created paused,
- *  which shows the start frame from prepare on without writing inline styles; play() starts them all. */
+ *  instead of once per tween (waapi-experiment-report.md, Task 3.7a).
+ *  Until play(), each part holds its start frame with inline styles, as GSAP's set() did. A paused
+ *  animation would hold it too, but it makes its element a composited layer for as long as the world
+ *  waits off-screen (73 layers instead of 63 at the hero, 125 instead of 69 with the time-log prepared),
+ *  and every full re-layerization costs more per layer. play() creates the animations, whose first frame
+ *  is that start frame, and puts the inline styles back as the server sent them, in the same task. */
 export function entrance(end: number) {
+  const parts: Part[] = [];
   const all: Animation[] = [];
   let playing = false;
+  const restore = (part: Part) => {
+    for (const [name, value, priority] of part.saved) {
+      if (value) part.el.style.setProperty(name, value, priority);
+      else part.el.style.removeProperty(name);
+    }
+  };
   return {
     /** Adds a tween. A part created mid-entrance passes `from` (its creation time on the entrance's clock)
      *  and starts at once, on the entrance's clock, so it still ends with the others. */
     add(el: Element | null | undefined, keyframes: Keyframe[], tween: Tween, { from = 0, fill }: { from?: number; fill?: FillMode } = {}) {
-      if (!canAnimate(el)) return undefined;
-      const animation = el.animate(span(keyframes, tween, from, end), { duration: end - from, ...(fill ? { fill } : {}) });
-      const clock = all[0]?.startTime;
-      if (!playing) animation.pause();
-      else if (typeof clock === "number") animation.startTime = clock + from;
-      all.push(animation);
-      return animation;
+      if (!canAnimate(el) || !("style" in el)) return undefined;
+      const spanned = span(keyframes, tween, from, end);
+      if (playing) {
+        const animation = el.animate(spanned, { duration: end - from, ...(fill ? { fill } : {}) });
+        const clock = all[0]?.startTime;
+        if (typeof clock === "number") animation.startTime = clock + from;
+        all.push(animation);
+        return animation;
+      }
+      const target = el as HTMLElement | SVGElement;
+      const first = valueOf(spanned[0]);
+      const saved = Object.keys(first).map((name): [string, string, string] => [name, target.style.getPropertyValue(name), target.style.getPropertyPriority(name)]);
+      for (const name of Object.keys(first)) target.style.setProperty(name, String(first[name]));
+      parts.push({ el: target, keyframes: spanned, saved });
+      return undefined;
     },
     /** Plays the entrance; `onEnd` runs in the frame where it ends (at once if there is nothing to play). */
     play(onEnd: () => void) {
       playing = true;
-      for (const animation of all) animation.play();
+      const queued = parts.splice(0);
+      for (const part of queued) all.push(part.el.animate(part.keyframes, { duration: end }));
+      for (const part of queued.reverse()) restore(part); // newest first, so a shared property ends as the server sent it
       if (all[0]) all[0].addEventListener("finish", onEnd, { once: true });
       else onEnd();
     },
     cancel() {
       playing = false;
+      for (const part of parts.splice(0).reverse()) restore(part);
       for (const animation of all.splice(0)) animation.cancel();
     },
   };

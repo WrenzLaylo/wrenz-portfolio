@@ -259,3 +259,9 @@ export function imageSrc(img: Element): string {
   const src = img.getAttribute("src") ?? "";
   return src.startsWith("/_next/image?") ? (new URL(src, "http://x").searchParams.get("url") ?? "") : src;
 }
+
+/** An element's inline declarations, sorted ("" when it has none): what the server sent, however serialized. */
+export const declarations = (el: Element) => {
+  const style = (el as HTMLElement).style;
+  return Array.from(style, (p) => `${p}:${style.getPropertyValue(p)}${style.getPropertyPriority(p) ? "!important" : ""}`).sort().join(";");
+};

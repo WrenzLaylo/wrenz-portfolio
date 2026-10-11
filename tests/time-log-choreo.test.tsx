@@ -6,7 +6,7 @@ import { registry } from "@/motion/registry";
 import type { SceneEnv } from "@/motion/types";
 import choreo from "@/scenes/time-log/choreo";
 import { TimeLogScene } from "@/scenes/time-log/Scene";
-import { animationsOf, FakeAnimation, finishAll, installFakeWaapi, removeFakeWaapi, sample, setWidth } from "./helpers";
+import { animationsOf, declarations, FakeAnimation, finishAll, installFakeWaapi, removeFakeWaapi, sample, setWidth } from "./helpers";
 
 const project = fullProjects.find((p) => p.slug === "time-log")!;
 const markup = renderToStaticMarkup(<TimeLogScene project={project} />);
@@ -57,12 +57,30 @@ describe("time-log choreography", () => {
     expect(root.querySelector(".typing")?.classList.contains("on")).toBe(false);
   });
 
+  it("holds the start frame inline until enter(): window low, bubbles small, clock at 7:00, cells empty", () => {
+    const root = mount();
+    const win = root.querySelector('[data-part="win"]') as HTMLElement;
+    const bubble = root.querySelector(".bubble[data-cell]") as HTMLElement;
+    const hour = root.querySelector('[data-part="hour"]') as HTMLElement;
+    const value = root.querySelector('[data-slot="out"] .v') as HTMLElement;
+    const server = [win, bubble, hour, value].map(declarations);
+    const handle = choreo(root, env(false));
+    expect(FakeAnimation.all).toHaveLength(0);
+    expect(win.style.transform).toBe("translateY(30px)");
+    expect([bubble.style.transform, bubble.style.opacity]).toEqual(["scale(0.4)", "0"]);
+    expect(hour.style.transform).toBe("rotate(210deg)");
+    expect(value.style.opacity).toBe("0");
+    handle.enter();
+    expect([win, bubble, hour, value].map(declarations)).toEqual(server);
+    handle.cleanup();
+  });
+
   it("adds .live when GSAP's timeline ended: 1.85 s after the last landing, all animations together", () => {
     const root = mount();
     const handle = choreo(root, env(false));
-    expect(FakeAnimation.all.length).toBeGreaterThan(20);
-    expect(FakeAnimation.all.every((a) => a.options.duration === DESKTOP_END && a.playState === "paused")).toBe(true);
     handle.enter();
+    expect(FakeAnimation.all.length).toBeGreaterThan(20);
+    expect(FakeAnimation.all.every((a) => a.options.duration === DESKTOP_END && a.playState === "running")).toBe(true);
     vi.advanceTimersByTime(DESKTOP_END - 1);
     expect(root.classList.contains("live")).toBe(false);
     vi.advanceTimersByTime(1);
@@ -83,7 +101,7 @@ describe("time-log choreography", () => {
 
   it("pops the parts in on GSAP's schedule", () => {
     const root = mount();
-    choreo(root, env(false));
+    choreo(root, env(false)).enter();
     const t = (ms: number) => ms / DESKTOP_END;
     const bubbles = [...root.querySelectorAll<HTMLElement>(".bubble[data-cell]")];
     // bubble i: scale 0.4 → 1 from 0.3 + 0.12 i s over 0.4 s (back.out(2)), opacity with it
@@ -112,7 +130,7 @@ describe("time-log choreography", () => {
 
   it("sweeps the clock from 7:00 through each posted time, ending on the server's 3:00", () => {
     const root = mount();
-    choreo(root, env(false));
+    choreo(root, env(false)).enter();
     const t = (ms: number) => ms / DESKTOP_END;
     const hour = anim(root.querySelector('[data-part="hour"]')).keyframes;
     const minute = anim(root.querySelector('[data-part="minute"]')).keyframes;

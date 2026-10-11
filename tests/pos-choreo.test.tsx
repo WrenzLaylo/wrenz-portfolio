@@ -6,7 +6,7 @@ import { registry } from "@/motion/registry";
 import type { SceneEnv } from "@/motion/types";
 import choreo from "@/scenes/pos/choreo";
 import { PosScene } from "@/scenes/pos/Scene";
-import { animationsOf, FakeAnimation, finishAll, installFakeWaapi, removeFakeWaapi, sample, setWidth } from "./helpers";
+import { animationsOf, declarations, FakeAnimation, finishAll, installFakeWaapi, removeFakeWaapi, sample, setWidth } from "./helpers";
 
 const project = fullProjects.find((p) => p.slug === "pos")!;
 const markup = renderToStaticMarkup(<PosScene project={project} />);
@@ -57,24 +57,29 @@ describe("POS choreography", () => {
     handle.cleanup();
   });
 
-  it("holds the start frame with paused animations, not inline styles, until enter()", () => {
+  it("holds the start frame with inline styles until enter(), then hands it to the animations", () => {
     const root = mount(820);
     const pig = part(root, "pig");
     const sack = part(root, "sack");
-    const pigStyle = pig.getAttribute("style");
-    choreo(root, env(false));
-    expect(anim(pig, "transform").keyframes[0].transform).toBe("translateX(-640px)");
-    expect(anim(sack, "opacity").keyframes[0].opacity).toBe(0);
-    expect(FakeAnimation.all.every((a) => a.playState === "paused")).toBe(true);
-    expect(FakeAnimation.all.every((a) => a.options.duration === END)).toBe(true);
-    expect(pig.getAttribute("style")).toBe(pigStyle);
+    const pigStyle = declarations(pig);
+    const handle = choreo(root, env(false));
+    expect(pig.style.transform).toBe("translateX(-640px)");
+    expect(sack.style.opacity).toBe("0");
+    expect(FakeAnimation.all).toHaveLength(0);
     vi.advanceTimersByTime(10_000);
     expect(root.classList.contains("live")).toBe(false);
+    handle.enter();
+    expect(declarations(pig)).toBe(pigStyle);
+    expect(sack.style.opacity).toBe("");
+    expect(anim(pig, "transform").keyframes[0].transform).toBe("translateX(-640px)");
+    expect(FakeAnimation.all.every((a) => a.playState === "running" && a.options.duration === END)).toBe(true);
+    handle.cleanup();
   });
 
   it("plays GSAP's timeline: laptop, walk, legs and sack, then .live when the legs settle", () => {
     const root = mount(820);
     const handle = choreo(root, env(false));
+    handle.enter();
     const walk = anim(part(root, "pig"), "transform").keyframes;
     const laptop = anim(part(root, "laptop"), "transform").keyframes;
     const sack = part(root, "sack");
@@ -96,7 +101,6 @@ describe("POS choreography", () => {
     [300, 480, 660, 840, 1020, 1200].forEach((ms, k) => expect(sample(leg, "transform", at(ms))).toBeCloseTo(k % 2 ? 14 : -14, 6));
     expect(sample(leg, "transform", 1)).toBe(0);
 
-    handle.enter();
     vi.advanceTimersByTime(END - 1);
     expect(root.classList.contains("live")).toBe(false);
     vi.advanceTimersByTime(1);
