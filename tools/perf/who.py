@@ -24,6 +24,7 @@ async def main():
             await b.close()
             sys.exit(f"no stage {SLUG} on the page")
         await pg.wait_for_timeout(8000)
+        print("live stages:", await pg.evaluate("(s) => document.querySelectorAll(`[data-scene=\"${s}\"].live:not(.paused)`).length", SLUG), "of", await pg.evaluate("(s) => document.querySelectorAll(`[data-scene=\"${s}\"]`).length", SLUG))
         if THR > 1:
             await cdp.send("Emulation.setCPUThrottlingRate", {"rate": THR})
         ev = []; done = asyncio.get_event_loop().create_future()

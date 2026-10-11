@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { gsap } from "gsap";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { fullProjects } from "@/content/projects";
 import { registry } from "@/motion/registry";
 import type { SceneEnv } from "@/motion/types";
@@ -77,78 +77,29 @@ describe("POS choreography", () => {
     expect(gsap.getTweensOf(inner)).toHaveLength(0);
     expect(inner.style.transform).toBe("");
   });
-  describe("look-at-you flourish", () => {
-    const proto = Element.prototype as unknown as { animate?: unknown };
-    const cancel = vi.fn();
-    const animate = vi.fn(() => ({ cancel, playState: "running" }));
-    const fire = (el: Element) => el.dispatchEvent(new Event("animationiteration", { bubbles: true }));
-    const live = (skip = true) => {
-      const root = mount(820);
-      const handle = choreo(root, env(skip));
-      handle.enter();
-      if (!skip) finishAllTweens(gsap);
-      const head = root.querySelector<HTMLElement>('[data-part="pig-head"]') as HTMLElement;
-      return { root, handle, head };
-    };
-    beforeEach(() => {
-      animate.mockClear();
-      cancel.mockClear();
-      proto.animate = animate;
-    });
-    afterEach(() => {
-      delete proto.animate;
-    });
+  it("hops at once when the entrance is skipped", () => {
+    const root = mount(820);
+    const handle = choreo(root, env(true));
+    handle.enter();
+    const inner = root.querySelector<HTMLElement>('[data-part="pig-inner"]') as HTMLElement;
+    (root.querySelector('[data-part="pig"]') as HTMLElement).dispatchEvent(new Event("pointerenter"));
+    expect(gsap.getTweensOf(inner).length).toBeGreaterThan(0);
+    handle.cleanup();
+  });
 
-    it("runs once for the head's own animation and not for one bubbling from the jaw", () => {
-      const { root, head, handle } = live();
-      fire(root.querySelector(".pig-jaw") as Element);
-      expect(animate).not.toHaveBeenCalled();
-      fire(head);
-      expect(animate).toHaveBeenCalledTimes(4); // two ears, two eyes
-      handle.cleanup();
-    });
-
-    it("bails out while the stage is paused", () => {
-      const { root, head, handle } = live();
-      root.classList.add("paused");
-      fire(head);
-      expect(animate).not.toHaveBeenCalled();
-      handle.cleanup();
-    });
-
-    it("does nothing, and throws nothing, where Element.animate is missing", () => {
-      delete proto.animate;
-      const { head, handle } = live();
-      expect(() => fire(head)).not.toThrow();
-      handle.cleanup();
-    });
-
-    it("cancels the running flourishes on cleanup", () => {
-      const { head, handle } = live();
-      fire(head);
-      handle.cleanup();
-      expect(cancel).toHaveBeenCalledTimes(4);
-    });
-
-    it("hops at once when the entrance is skipped", () => {
-      const { root, handle } = live(true);
-      const inner = root.querySelector<HTMLElement>('[data-part="pig-inner"]') as HTMLElement;
-      (root.querySelector('[data-part="pig"]') as HTMLElement).dispatchEvent(new Event("pointerenter"));
-      expect(gsap.getTweensOf(inner).length).toBeGreaterThan(0);
-      handle.cleanup();
-    });
-
-    it("adds no duplicate listeners on a second prepare, enter and cleanup cycle", () => {
-      const root = mount(820);
-      const head = root.querySelector<HTMLElement>('[data-part="pig-head"]') as HTMLElement;
-      const first = choreo(root, env(true));
-      first.enter();
-      first.cleanup();
-      const second = choreo(root, env(true));
-      second.enter();
-      fire(head);
-      expect(animate).toHaveBeenCalledTimes(4);
-      second.cleanup();
-    });
+  it("adds no duplicate listeners on a second prepare, enter and cleanup cycle", () => {
+    const root = mount(820);
+    const pig = root.querySelector<HTMLElement>('[data-part="pig"]') as HTMLElement;
+    const inner = root.querySelector<HTMLElement>('[data-part="pig-inner"]') as HTMLElement;
+    const first = choreo(root, env(true));
+    first.enter();
+    first.cleanup();
+    const second = choreo(root, env(true));
+    second.enter();
+    pig.dispatchEvent(new Event("pointerenter"));
+    const once = gsap.getTweensOf(inner).length;
+    expect(once).toBeGreaterThan(0);
+    second.cleanup();
+    expect(gsap.getTweensOf(inner)).toHaveLength(0);
   });
 });

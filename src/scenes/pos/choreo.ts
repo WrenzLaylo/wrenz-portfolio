@@ -16,12 +16,9 @@ const choreo: Choreo = (root, { gsap, mobile, skipEntrance }) => {
   const laptop = one('[data-part="laptop"]');
   const pig = one('[data-part="pig"]');
   const inner = one('[data-part="pig-inner"]');
-  const head = one('[data-part="pig-head"]');
   const sack = one('[data-part="sack"]');
   const legsA = all(".pig-leg.leg-a");
   const legsB = all(".pig-leg.leg-b");
-  const ears = all(".pig-ear");
-  const eyes = all(".pig-eye");
   const burst = all('[data-part="burst"]');
   const targets = [laptop, pig, inner, sack, ...legsA, ...legsB, ...burst].filter((el): el is HTMLElement => el !== null);
 
@@ -29,7 +26,6 @@ const choreo: Choreo = (root, { gsap, mobile, skipEntrance }) => {
   let hopping = false;
   let entrance: { kill(): unknown } | undefined;
   const owned: Array<{ kill(): unknown }> = [];
-  let flourishes: Animation[] = [];
 
   if (!skipEntrance) {
     if (laptop) gsap.set(laptop, { y: 40 * u });
@@ -42,33 +38,6 @@ const choreo: Choreo = (root, { gsap, mobile, skipEntrance }) => {
   const goLive = () => {
     root.classList.add("live");
     ready = true;
-  };
-
-  // Each eat cycle, once the head is back up, the ears flick and the eyes blink twice. Short WAAPI
-  // flourishes, skipped off-screen and where Element.animate is missing.
-  const lookAtYou = (event: Event) => {
-    if (event.target !== head) return; // the jaw loop inside the head bubbles its own events here
-    if (root.classList.contains("paused")) return;
-    flourishes = flourishes.filter((a) => a.playState !== "finished");
-    ears.forEach((ear, k) => {
-      if (typeof ear.animate !== "function") return;
-      flourishes.push(
-        ear.animate([{ transform: "rotate(0deg)" }, { transform: "rotate(10deg)" }, { transform: "rotate(0deg)" }], {
-          duration: 260,
-          delay: 4850 + k * 60,
-          easing: "ease-in-out",
-        }),
-      );
-    });
-    for (const eye of eyes) {
-      if (typeof eye.animate !== "function") continue;
-      flourishes.push(
-        eye.animate(
-          [{ transform: "scaleY(1)" }, { transform: "scaleY(.1)" }, { transform: "scaleY(1)" }, { transform: "scaleY(.1)" }, { transform: "scaleY(1)" }],
-          { duration: 300, delay: 5150, easing: "ease-in-out" },
-        ),
-      );
-    }
   };
 
   const hop = () => {
@@ -96,8 +65,6 @@ const choreo: Choreo = (root, { gsap, mobile, skipEntrance }) => {
     });
   };
 
-  head?.addEventListener("animationstart", lookAtYou);
-  head?.addEventListener("animationiteration", lookAtYou);
   pig?.addEventListener("pointerenter", hop);
   pig?.addEventListener("pointerdown", hop);
 
@@ -133,10 +100,6 @@ const choreo: Choreo = (root, { gsap, mobile, skipEntrance }) => {
       for (const animation of owned.splice(0)) animation.kill();
       gsap.killTweensOf(targets);
       gsap.set(targets, { clearProps: "transform,opacity,visibility" });
-      for (const animation of flourishes) animation.cancel();
-      flourishes = [];
-      head?.removeEventListener("animationstart", lookAtYou);
-      head?.removeEventListener("animationiteration", lookAtYou);
       pig?.removeEventListener("pointerenter", hop);
       pig?.removeEventListener("pointerdown", hop);
       for (const key of LOOP_VARS) root.style.removeProperty(`--${key}`);
