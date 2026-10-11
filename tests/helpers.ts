@@ -253,3 +253,9 @@ export function ease(easing: string, x: number): number {
   }
   return 3 * (1 - s) ** 2 * s * y1 + 3 * (1 - s) * s * s * y2 + s ** 3;
 }
+
+/** The public path an <img> shows: the `url` of a Next image-optimizer src, or the src itself. */
+export function imageSrc(img: Element): string {
+  const src = img.getAttribute("src") ?? "";
+  return src.startsWith("/_next/image?") ? (new URL(src, "http://x").searchParams.get("url") ?? "") : src;
+}

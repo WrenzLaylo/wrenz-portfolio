@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Img } from "./Img";
 import { fullProjects } from "@/content/projects";
 import { site } from "@/content/site";
 import type { FullSlug } from "@/content/types";
@@ -64,7 +64,7 @@ export function HeroStage() {
           <div className="pos p-scroll" style={place({ x: 160, y: 126, w: 300, mx: 96, my: 52, mw: 166 })}>
             <div className="p-pop">
               <div className="portrait">
-                <Image
+                <Img
                   src={site.portrait.src}
                   alt={site.portrait.alt}
                   width={site.portrait.width}
