@@ -1,5 +1,5 @@
 /* The hero (spec §7): copy left, the "cast" right. Fills the first viewport under the 64 px nav. */
-.hero { position: relative; overflow: clip; overflow-clip-margin: 1px; min-height: calc(100dvh - 64px); display: flex; flex-direction: column; padding-bottom: 72px; }
+.hero { position: relative; overflow: clip; min-height: calc(100dvh - 64px); display: flex; flex-direction: column; padding-bottom: 72px; }
 .hero-grid { flex: 1; display: grid; grid-template-columns: 54fr 46fr; align-items: center; gap: 24px; padding: 32px 0 48px; }
 
 .hero h1 { display: grid; gap: 18px; }

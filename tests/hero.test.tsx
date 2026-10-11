@@ -65,4 +65,11 @@ describe("hero.css", () => {
   it("hides nothing behind a preload class", () => {
     expect(css).not.toMatch(/preload/);
   });
+
+  // The scroll-out carries mascots past the viewport edge; any clip margin on the full-width section
+  // adds that margin to the page's scroll width (1441 px at 1440).
+  it("clips the scroll-out exactly at the section's edge, so it never widens the page", () => {
+    expect(css).toMatch(/^\.hero \{[^}]*overflow: clip;/m);
+    expect(css).not.toMatch(/overflow-clip-margin/);
+  });
 });
