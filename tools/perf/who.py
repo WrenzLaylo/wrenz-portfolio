@@ -1,6 +1,6 @@
 """Who requests main-thread frames? Parks in a scene with NO input, traces, and lists
 JS function calls (by name/url:line), rAF owners and style-recalc triggers.
-usage: py -3.11 -I tools/perf/who.py SLUG THROTTLE [--scroll|--mouse] [--q=QUERY]"""
+usage: py -3.11 -I tools/perf/who.py SLUG THROTTLE [--scroll|--mouse] [--q=QUERY] [--trace=MS]"""
 import sys, asyncio, json, collections, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from common import BASE_URL, park  # noqa: E402
@@ -8,6 +8,7 @@ from playwright.async_api import async_playwright
 
 SLUG, THR = sys.argv[1], float(sys.argv[2])
 SCROLL = "--scroll" in sys.argv
+TRACE_MS = int(next((a.split("=",1)[1] for a in sys.argv if a.startswith("--trace=")), 3000))
 URL = BASE_URL + next((a.split("=",1)[1] for a in sys.argv if a.startswith("--q=")), "")
 CATS = "devtools.timeline,disabled-by-default-devtools.timeline,disabled-by-default-devtools.timeline.stack,blink,cc,benchmark"
 
@@ -23,6 +24,7 @@ async def main():
             await b.close()
             sys.exit(f"no stage {SLUG} on the page")
         await pg.wait_for_timeout(8000)
+        print("live stages:", await pg.evaluate("(s) => document.querySelectorAll(`[data-scene=\"${s}\"].live:not(.paused)`).length", SLUG), "of", await pg.evaluate("(s) => document.querySelectorAll(`[data-scene=\"${s}\"]`).length", SLUG))
         if THR > 1:
             await cdp.send("Emulation.setCPUThrottlingRate", {"rate": THR})
         ev = []; done = asyncio.get_event_loop().create_future()
@@ -37,7 +39,7 @@ async def main():
                 await pg.mouse.move(1440 * (0.3 + 0.5 * ((i % 5) / 4)), 900 * (0.3 + 0.4 * ((i % 3) / 2)), steps=3)
                 await pg.wait_for_timeout(150)
         else:
-            await pg.wait_for_timeout(3000)
+            await pg.wait_for_timeout(TRACE_MS)
         await cdp.send("Tracing.end"); await done
         await b.close()
     names = {(e["pid"], e["tid"]): e["args"]["name"] for e in ev if e.get("ph") == "M" and e.get("name") == "thread_name"}
