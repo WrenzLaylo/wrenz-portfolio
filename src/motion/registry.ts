@@ -5,7 +5,7 @@ import type { ChoreoLoader } from "./types";
  *  Worlds still on the basic scene share the basic choreography until their phase replaces it. */
 export const registry: Record<FullSlug, ChoreoLoader> = {
   pos: () => import("@/scenes/pos/choreo"),
-  "time-log": () => import("@/scenes/basic/choreo"),
+  "time-log": () => import("@/scenes/time-log/choreo"),
   "service-areas": () => import("@/scenes/basic/choreo"),
   katiwala: () => import("@/scenes/basic/choreo"),
   stockroom: () => import("@/scenes/basic/choreo"),
