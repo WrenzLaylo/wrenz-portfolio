@@ -7,6 +7,7 @@ import { compactProjects, fullProjects } from "@/content/projects";
 import type { Project } from "@/content/types";
 import { compactScenes, fullScenes } from "@/scenes";
 import { STAGE_GRID_SWITCH } from "@/scenes/grid";
+import { imageSrc } from "./helpers";
 
 const FORBIDDEN = "h1, h2, h3, h4, h5, h6, button, a, table, th, form, input";
 const spriteDoc = new JSDOM(renderToStaticMarkup(<Sprite />)).window.document;
@@ -43,7 +44,7 @@ function sharedChecks(stage: HTMLElement, project: Project, tier: string, limit:
 
   it("names its visual: the screenshot's alt text, or the illustration label", () => {
     if (project.shot) {
-      const img = [...stage.querySelectorAll("img")].find((i) => i.getAttribute("src") === project.shot?.src);
+      const img = [...stage.querySelectorAll("img")].find((i) => imageSrc(i) === project.shot?.src);
       expect(img?.getAttribute("alt")).toBe(project.shot.alt);
       expect(img?.closest('[aria-hidden="true"]')).toBeNull();
     } else {
