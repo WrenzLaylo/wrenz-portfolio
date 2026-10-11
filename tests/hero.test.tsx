@@ -62,6 +62,13 @@ describe("hero.css", () => {
     expect(css).toMatch(/\.hero \.p-pop \{ animation: hero-pop /);
   });
 
+  // On phones the lede is the largest text block, so it can be the LCP element; a paint at opacity 0
+  // is not an LCP candidate until it becomes visible.
+  it("enters the lede with transform only as well, never from opacity 0", () => {
+    expect(css).toMatch(/\.hero \.lede \{ animation: hero-rise /);
+    expect(css).not.toMatch(/\.hero \.lede \{ animation: hero-in /);
+  });
+
   it("hides nothing behind a preload class", () => {
     expect(css).not.toMatch(/preload/);
   });

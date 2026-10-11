@@ -51,12 +51,13 @@
 @keyframes hero-m-pop { from { transform: scale(0) rotate(calc(var(--tilt, 0deg) * -5)); } }
 
 @media (prefers-reduced-motion: no-preference) {
-  /* Entrance (spec §7): CSS with `both` fill, no JavaScript. The H1 and the portrait move with transform
-     only, so they count for LCP at first paint. Timings follow the slice's GSAP timeline. */
+  /* Entrance (spec §7): CSS with `both` fill, no JavaScript. The H1, the lede (the largest text on phones)
+     and the portrait move with transform only, so they count for LCP at first paint. Timings follow the
+     slice's GSAP timeline. */
   .hero .hero-blob { animation: hero-blob-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0s both; }
   .hero .h1-name { animation: hero-rise 0.6s cubic-bezier(0.215, 0.61, 0.355, 1) 0.1s both; }
   .hero .h1-slogan { animation: hero-rise 0.6s cubic-bezier(0.215, 0.61, 0.355, 1) 0.18s both; }
-  .hero .lede { animation: hero-in 0.6s cubic-bezier(0.215, 0.61, 0.355, 1) 0.26s both; }
+  .hero .lede { animation: hero-rise 0.6s cubic-bezier(0.215, 0.61, 0.355, 1) 0.26s both; }
   .hero .cta-row { animation: hero-in 0.6s cubic-bezier(0.215, 0.61, 0.355, 1) 0.34s both; }
   .hero .p-pop { animation: hero-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both; }
   .hero .m-pop { animation: hero-m-pop 0.55s cubic-bezier(0.34, 1.8, 0.64, 1) calc(0.45s + var(--mi, 0) * 0.08s) both; }
