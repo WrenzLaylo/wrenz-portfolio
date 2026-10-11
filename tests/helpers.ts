@@ -1,4 +1,3 @@
-import type { gsap as Gsap } from "gsap";
 import { vi } from "vitest";
 
 export class FakeIO {
@@ -253,13 +252,4 @@ export function ease(easing: string, x: number): number {
     else hi = s;
   }
   return 3 * (1 - s) ** 2 * s * y1 + 3 * (1 - s) * s * s * y2 + s ** 3;
-}
-
-/** Jump every running GSAP animation to its end, firing callbacks; repeats for animations those callbacks start. */
-export function finishAllTweens(gsap: typeof Gsap) {
-  for (let round = 0; round < 20; round++) {
-    const running = gsap.globalTimeline.getChildren(false, true, true).filter((a) => a.progress() < 1);
-    if (running.length === 0) return;
-    for (const animation of running) animation.progress(1);
-  }
 }

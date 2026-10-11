@@ -1,13 +1,12 @@
 // @vitest-environment jsdom
-import { gsap } from "gsap";
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fullProjects } from "@/content/projects";
 import { registry } from "@/motion/registry";
 import type { SceneEnv } from "@/motion/types";
 import choreo from "@/scenes/pos/choreo";
 import { PosScene } from "@/scenes/pos/Scene";
-import { finishAllTweens, setWidth } from "./helpers";
+import { animationsOf, FakeAnimation, finishAll, installFakeWaapi, removeFakeWaapi, sample, setWidth } from "./helpers";
 
 const project = fullProjects.find((p) => p.slug === "pos")!;
 const markup = renderToStaticMarkup(<PosScene project={project} />);
@@ -18,11 +17,21 @@ function mount(width = 820) {
   setWidth(root, width);
   return root;
 }
-const env = (skipEntrance: boolean, mobile = false): SceneEnv => ({ gsap, mobile, pointer: false, skipEntrance });
+const env = (skipEntrance: boolean, mobile = false): SceneEnv => ({ mobile, pointer: false, skipEntrance });
+const part = (root: HTMLElement, name: string) => root.querySelector<HTMLElement>(`[data-part="${name}"]`) as HTMLElement;
+/** The one animation on `el` that animates `property`. */
+const anim = (el: Element, property: string) => animationsOf(el).find((a) => property in a.keyframes[0]) as FakeAnimation;
+const END = 1350; // the entrance ends when the legs settle: 0.3 + 5 × 0.18 + 0.15 s
+const at = (ms: number) => ms / END;
 
 describe("POS choreography", () => {
   beforeEach(() => {
-    gsap.globalTimeline.clear();
+    installFakeWaapi();
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    removeFakeWaapi();
   });
 
   it("is the registered POS choreography", async () => {
@@ -48,58 +57,130 @@ describe("POS choreography", () => {
     handle.cleanup();
   });
 
-  it("starts the pig off-stage and the sack hidden when it has an entrance to play", () => {
+  it("holds the start frame with paused animations, not inline styles, until enter()", () => {
+    const root = mount(820);
+    const pig = part(root, "pig");
+    const sack = part(root, "sack");
+    const pigStyle = pig.getAttribute("style");
+    choreo(root, env(false));
+    expect(anim(pig, "transform").keyframes[0].transform).toBe("translateX(-640px)");
+    expect(anim(sack, "opacity").keyframes[0].opacity).toBe(0);
+    expect(FakeAnimation.all.every((a) => a.playState === "paused")).toBe(true);
+    expect(FakeAnimation.all.every((a) => a.options.duration === END)).toBe(true);
+    expect(pig.getAttribute("style")).toBe(pigStyle);
+    vi.advanceTimersByTime(10_000);
+    expect(root.classList.contains("live")).toBe(false);
+  });
+
+  it("plays GSAP's timeline: laptop, walk, legs and sack, then .live when the legs settle", () => {
     const root = mount(820);
     const handle = choreo(root, env(false));
-    const pig = root.querySelector<HTMLElement>('[data-part="pig"]') as HTMLElement;
-    const sack = root.querySelector<HTMLElement>('[data-part="sack"]') as HTMLElement;
-    expect(pig.style.transform).toContain("-640px");
-    expect(sack.style.visibility).toBe("hidden");
+    const walk = anim(part(root, "pig"), "transform").keyframes;
+    const laptop = anim(part(root, "laptop"), "transform").keyframes;
+    const sack = part(root, "sack");
+    const drop = anim(sack, "translate").keyframes;
+    const turn = anim(sack, "rotate").keyframes;
+    const leg = anim(root.querySelector(".pig-leg.leg-a") as HTMLElement, "transform").keyframes;
+
+    // laptop: y 40 → 0 over 0.6 s, power3.out (closest cubic-bézier)
+    expect(sample(laptop, "transform", at(300))).toBeCloseTo(40 * (1 - 0.5) ** 4, 0);
+    // pig: x -640 → 0 from 0.3 s over 0.9 s, power2.out
+    expect(sample(walk, "transform", at(299))).toBeCloseTo(-640, 0);
+    expect(sample(walk, "transform", at(750))).toBeCloseTo(-640 * 0.5 ** 3, 3);
+    expect(sample(walk, "transform", at(1200))).toBeCloseTo(0, 6);
+    // sack: drops 360 from 0.35 s over 0.7 s with bounce.out, turning from 40° to its CSS 96° (power2.out)
+    expect(sample(drop, "translate", at(349), 1)).toBeCloseTo(-360, 6);
+    expect(sample(drop, "translate", at(350 + 0.3 * 700), 1)).toBeCloseTo(-360 * (1 - 7.5625 * 0.09), 3);
+    expect(sample(turn, "rotate", at(350 + 0.5 * 700))).toBeCloseTo(-56 * 0.5 ** 3, 3);
+    // legs: ±14° swings every 0.18 s from 0.3 s, at rest by 1.35 s
+    [300, 480, 660, 840, 1020, 1200].forEach((ms, k) => expect(sample(leg, "transform", at(ms))).toBeCloseTo(k % 2 ? 14 : -14, 6));
+    expect(sample(leg, "transform", 1)).toBe(0);
+
     handle.enter();
-    finishAllTweens(gsap);
+    vi.advanceTimersByTime(END - 1);
+    expect(root.classList.contains("live")).toBe(false);
+    vi.advanceTimersByTime(1);
     expect(root.classList.contains("live")).toBe(true);
-    expect(sack.style.visibility).not.toBe("hidden");
+    expect(animationsOf(sack)).toHaveLength(0);
     handle.cleanup();
   });
 
   it("hops only once the scene is live", () => {
     const root = mount(820);
     const handle = choreo(root, env(false));
-    const pig = root.querySelector<HTMLElement>('[data-part="pig"]') as HTMLElement;
-    const inner = root.querySelector<HTMLElement>('[data-part="pig-inner"]') as HTMLElement;
+    const pig = part(root, "pig");
+    const inner = part(root, "pig-inner");
     pig.dispatchEvent(new Event("pointerenter"));
-    expect(gsap.getTweensOf(inner)).toHaveLength(0);
+    expect(animationsOf(inner)).toHaveLength(0);
     handle.enter();
-    finishAllTweens(gsap);
+    finishAll();
     pig.dispatchEvent(new Event("pointerenter"));
-    expect(gsap.getTweensOf(inner).length).toBeGreaterThan(0);
+    expect(animationsOf(inner).length).toBeGreaterThan(0);
     handle.cleanup();
-    expect(gsap.getTweensOf(inner)).toHaveLength(0);
+    expect(animationsOf(inner)).toHaveLength(0);
     expect(inner.style.transform).toBe("");
   });
+
+  it("hops like GSAP: up 24 px with power2.out, down with bounce.out, three coins arcing out", () => {
+    const root = mount(820);
+    const handle = choreo(root, env(true));
+    handle.enter();
+    part(root, "pig").dispatchEvent(new Event("pointerdown"));
+    const hop = anim(part(root, "pig-inner"), "transform");
+    expect(hop.options.duration).toBe(580);
+    expect(sample(hop.keyframes, "transform", 90 / 580)).toBeCloseTo(-24 * (1 - 0.5 ** 3), 3);
+    expect(sample(hop.keyframes, "transform", 180 / 580)).toBeCloseTo(-24, 6);
+    expect(sample(hop.keyframes, "transform", 380 / 580)).toBeCloseTo(-24 * (1 - (7.5625 * (0.5 - 1.5 / 2.75) ** 2 + 0.75)), 3);
+    expect(sample(hop.keyframes, "transform", 1)).toBe(0);
+    const coins = [...root.querySelectorAll<HTMLElement>('[data-part="burst"]')].map((c) => anim(c, "transform"));
+    expect(coins).toHaveLength(3);
+    expect(coins.map((c) => c.keyframes[1].transform)).toEqual([
+      "translate(-46px, -86px) scale(1)",
+      "translate(0px, -86px) scale(1)",
+      "translate(46px, -86px) scale(1)",
+    ]);
+    expect(coins.map((c) => c.keyframes.at(-1)?.opacity)).toEqual([0, 0, 0]);
+    handle.cleanup();
+  });
+
+  it("does not start a second hop until the first has landed", () => {
+    const root = mount(820);
+    const handle = choreo(root, env(true));
+    handle.enter();
+    const pig = part(root, "pig");
+    const inner = part(root, "pig-inner");
+    pig.dispatchEvent(new Event("pointerenter"));
+    pig.dispatchEvent(new Event("pointerdown"));
+    expect(animationsOf(inner)).toHaveLength(1);
+    vi.advanceTimersByTime(580);
+    pig.dispatchEvent(new Event("pointerenter"));
+    expect(animationsOf(inner)).toHaveLength(1);
+    expect(FakeAnimation.all.filter((a) => a.target === inner)).toHaveLength(2);
+    handle.cleanup();
+  });
+
   it("hops at once when the entrance is skipped", () => {
     const root = mount(820);
     const handle = choreo(root, env(true));
     handle.enter();
-    const inner = root.querySelector<HTMLElement>('[data-part="pig-inner"]') as HTMLElement;
-    (root.querySelector('[data-part="pig"]') as HTMLElement).dispatchEvent(new Event("pointerenter"));
-    expect(gsap.getTweensOf(inner).length).toBeGreaterThan(0);
+    const inner = part(root, "pig-inner");
+    part(root, "pig").dispatchEvent(new Event("pointerenter"));
+    expect(animationsOf(inner).length).toBeGreaterThan(0);
     handle.cleanup();
   });
 
   it("adds no duplicate listeners on a second prepare, enter and cleanup cycle", () => {
     const root = mount(820);
-    const pig = root.querySelector<HTMLElement>('[data-part="pig"]') as HTMLElement;
-    const inner = root.querySelector<HTMLElement>('[data-part="pig-inner"]') as HTMLElement;
+    const pig = part(root, "pig");
+    const inner = part(root, "pig-inner");
     const first = choreo(root, env(true));
     first.enter();
     first.cleanup();
     const second = choreo(root, env(true));
     second.enter();
     pig.dispatchEvent(new Event("pointerenter"));
-    const once = gsap.getTweensOf(inner).length;
-    expect(once).toBeGreaterThan(0);
+    expect(animationsOf(inner)).toHaveLength(1);
     second.cleanup();
-    expect(gsap.getTweensOf(inner)).toHaveLength(0);
+    expect(animationsOf(inner)).toHaveLength(0);
   });
 });

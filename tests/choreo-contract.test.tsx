@@ -1,12 +1,11 @@
 // @vitest-environment jsdom
-import { gsap } from "gsap";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fullProjects } from "@/content/projects";
 import { registry } from "@/motion/registry";
 import type { SceneEnv } from "@/motion/types";
 import { fullScenes } from "@/scenes";
-import { finishAllTweens, setWidth } from "./helpers";
+import { finishAll, installFakeWaapi, removeFakeWaapi, setWidth } from "./helpers";
 
 /** What a choreography may change: classes, inline styles, appended elements and leaf text. Cleanup must
  *  restore all of it: every inline declaration (placement variables included) of every element. */
@@ -28,7 +27,16 @@ describe.each(fullProjects)("choreography for $slug", (project) => {
     setWidth(root, mobile ? 358 : 820);
     return root;
   };
-  const env = (skipEntrance: boolean, mobile: boolean): SceneEnv => ({ gsap, mobile, pointer: false, skipEntrance });
+  const env = (skipEntrance: boolean, mobile: boolean): SceneEnv => ({ mobile, pointer: false, skipEntrance });
+
+  beforeEach(() => {
+    installFakeWaapi();
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    removeFakeWaapi();
+  });
 
   for (const mobile of [false, true]) {
     const grid = mobile ? "mobile" : "desktop";
@@ -56,7 +64,19 @@ describe.each(fullProjects)("choreography for $slug", (project) => {
       const before = snapshot(root);
       const handle = (await registry[project.slug]()).default(root, env(false, mobile));
       handle.enter();
-      finishAllTweens(gsap);
+      finishAll();
+      expect(root.classList.contains("live")).toBe(true);
+      handle.cleanup();
+      expect(snapshot(root)).toEqual(before);
+    });
+
+    it(`${grid}: without the Web Animations API, keeps the server end state and goes live at once`, async () => {
+      removeFakeWaapi();
+      const root = mount(mobile);
+      const before = snapshot(root);
+      const handle = (await registry[project.slug]()).default(root, env(false, mobile));
+      expect(snapshot(root)).toEqual(before);
+      handle.enter();
       expect(root.classList.contains("live")).toBe(true);
       handle.cleanup();
       expect(snapshot(root)).toEqual(before);
