@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { HeroStage } from "@/components/Hero";
 import { Sprite } from "@/components/Sprite";
 import { compactProjects, fullProjects } from "@/content/projects";
 import MotionRuntime from "@/motion/MotionRuntime";
@@ -13,7 +14,7 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 const WIDTHS = [820, 600, 358];
 
 function labIds(): string[] {
-  return [...fullProjects, ...compactProjects].map((p) => p.slug);
+  return ["hero", ...[...fullProjects, ...compactProjects].map((p) => p.slug)];
 }
 
 export function generateStaticParams() {
@@ -24,8 +25,9 @@ export default async function SceneLab({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const full = fullProjects.find((p) => p.slug === id);
   const compact = compactProjects.find((p) => p.slug === id);
-  if (!full && !compact) notFound();
+  if (id !== "hero" && !full && !compact) notFound();
   const render = () => {
+    if (id === "hero") return <HeroStage />;
     if (full) {
       const Scene = fullScenes[full.slug];
       return <Scene project={full} />;
@@ -34,7 +36,7 @@ export default async function SceneLab({ params }: { params: Promise<{ id: strin
     return <Scene project={compact!} />;
   };
   return (
-    <main className="lab" style={cssVars({ "--tint": `var(--color-tint-${id})` })}>
+    <main className="lab" style={id === "hero" ? undefined : cssVars({ "--tint": `var(--color-tint-${id})` })}>
       <Sprite />
       {WIDTHS.map((w) => (
         <div key={w} className="lab-frame" style={{ width: w }}>
