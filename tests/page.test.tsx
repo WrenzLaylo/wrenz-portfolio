@@ -38,4 +38,11 @@ describe("home page markup", () => {
   it("stays within the page DOM budget", () => {
     expect(doc.querySelectorAll("*").length).toBeLessThanOrEqual(2500);
   });
+
+  it("renders one JSON-LD script that parses", () => {
+    const scripts = doc.querySelectorAll('script[type="application/ld+json"]');
+    expect(scripts).toHaveLength(1);
+    const data = JSON.parse(scripts[0].textContent ?? "{}");
+    expect(data["@graph"][0]).toMatchObject({ "@type": "Person", name: "Wrenz Laylo" });
+  });
 });
