@@ -6,7 +6,7 @@ import { registry } from "@/motion/registry";
 import type { SceneEnv } from "@/motion/types";
 import choreo from "@/scenes/pos/choreo";
 import { PosScene } from "@/scenes/pos/Scene";
-import { animationsOf, declarations, FakeAnimation, finishAll, installFakeWaapi, removeFakeWaapi, sample, setWidth } from "./helpers";
+import { animationsOf, declarations, FakeAnimation, finishAll, FRAME, installFakeWaapi, removeFakeWaapi, sample, setWidth } from "./helpers";
 
 const project = fullProjects.find((p) => p.slug === "pos")!;
 const markup = renderToStaticMarkup(<PosScene project={project} />);
@@ -101,7 +101,7 @@ describe("POS choreography", () => {
     [300, 480, 660, 840, 1020, 1200].forEach((ms, k) => expect(sample(leg, "transform", at(ms))).toBeCloseTo(k % 2 ? 14 : -14, 6));
     expect(sample(leg, "transform", 1)).toBe(0);
 
-    vi.advanceTimersByTime(END - 1);
+    vi.advanceTimersByTime(FRAME + END - 1); // the start time resolves a frame after enter()
     expect(root.classList.contains("live")).toBe(false);
     vi.advanceTimersByTime(1);
     expect(root.classList.contains("live")).toBe(true);
@@ -156,7 +156,7 @@ describe("POS choreography", () => {
     pig.dispatchEvent(new Event("pointerenter"));
     pig.dispatchEvent(new Event("pointerdown"));
     expect(animationsOf(inner)).toHaveLength(1);
-    vi.advanceTimersByTime(580);
+    vi.advanceTimersByTime(FRAME + 580);
     pig.dispatchEvent(new Event("pointerenter"));
     expect(animationsOf(inner)).toHaveLength(1);
     expect(FakeAnimation.all.filter((a) => a.target === inner)).toHaveLength(2);

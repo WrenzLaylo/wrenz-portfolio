@@ -145,7 +145,8 @@ const choreo: Choreo = (root, { mobile, skipEntrance }) => {
         const opacity = Math.max(0, Math.min(1, grow) * (1 - fade));
         return { transform: `translate(${px(x)}, ${px(y)}) scale(${Math.round(scale * 1e4) / 1e4})`, opacity: Math.round(opacity * 1e4) / 1e4 };
       });
-      intro.add(chip, keyframes, { at: FLY(leg.i), dur: FLIGHT }, { from: FLY(0), fill: "forwards" });
+      // fill both: hidden from its creation (its start can lie a frame in the future) until it is removed.
+      intro.add(chip, keyframes, { at: FLY(leg.i), dur: FLIGHT }, { from: FLY(0), fill: "both" });
     });
   };
 

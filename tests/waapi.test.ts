@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { backOut, bounce, canAnimate, EASE, entrance, px, span, tracker } from "@/motion/waapi";
-import { animationsOf, declarations, ease, FakeAnimation, installFakeWaapi, removeFakeWaapi, sample } from "./helpers";
+import { animationsOf, declarations, ease, FakeAnimation, FRAME, installFakeWaapi, removeFakeWaapi, sample } from "./helpers";
 
 // GSAP 3's ease formulas (gsap-core.js), the reference the choreographies were written against.
 const gsap = {
@@ -138,7 +138,11 @@ describe("entrance", () => {
     expect(declarations(a())).toBe("");
     expect(b().style.getPropertyValue("opacity")).toBe("0.5"); // a server value is put back exactly
     expect(b().style.getPropertyPriority("opacity")).toBe("important");
-    vi.advanceTimersByTime(999);
+    expect(FakeAnimation.all.map((x) => [x.currentTime, x.effectApplied])).toEqual([
+      [0, true],
+      [0, true],
+    ]); // pending: the first frame shows until the start time resolves
+    vi.advanceTimersByTime(FRAME + 999);
     expect(done).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);
     expect(done).toHaveBeenCalledOnce();
@@ -162,7 +166,7 @@ describe("entrance", () => {
     expect(done).toHaveBeenCalledOnce();
   });
 
-  it("starts a part added mid-entrance on the entrance's clock, with its own fill", () => {
+  it("starts a part added mid-entrance on the entrance's clock, and ends it with the others", () => {
     const intro = entrance(1000);
     intro.add(a(), [{ opacity: 0 }, { opacity: 1 }], { dur: 1000 });
     const done = vi.fn();
@@ -170,11 +174,27 @@ describe("entrance", () => {
     vi.advanceTimersByTime(610); // a timer for 600 ms that fired a little late
     const late = intro.add(b(), [{ opacity: 1 }, { opacity: 0 }], { at: 600, dur: 200 }, { from: 600, fill: "forwards" });
     expect(late?.playState).toBe("running");
-    expect((late as unknown as FakeAnimation).options).toMatchObject({ duration: 400, fill: "forwards" });
+    expect((late as unknown as FakeAnimation).options).toMatchObject({ duration: 400, fill: "both" });
     expect(late?.startTime).toBe(Number(FakeAnimation.all[0].startTime) + 600);
-    vi.advanceTimersByTime(390);
+    vi.advanceTimersByTime(FRAME + 390);
     expect(done).toHaveBeenCalledOnce();
     expect(late?.playState).toBe("finished");
+  });
+
+  // The entrance's start time resolves a frame or more after play(), so a part started at entrance time
+  // `from` by a wall-clock timer usually begins in the future. Without a backwards fill it then shows
+  // nothing of its first keyframe: a chip held invisible until take-off would paint at full opacity.
+  it("shows a mid-entrance part's first frame even when its start lies in the future", () => {
+    const intro = entrance(1000);
+    intro.add(a(), [{ opacity: 0 }, { opacity: 1 }], { dur: 1000 });
+    intro.play(() => {});
+    vi.advanceTimersByTime(600); // the timer fires on time, but the entrance started FRAME ms late
+    for (const fill of [undefined, "forwards"] as const) {
+      const late = intro.add(b(), [{ opacity: 0 }, { opacity: 1 }], { at: 600, dur: 200 }, { from: 600, fill }) as unknown as FakeAnimation;
+      expect(late.currentTime).toBeLessThan(0);
+      expect(late.effectApplied).toBe(true);
+      expect(late.options.fill).toBe(fill === "forwards" ? "both" : "backwards");
+    }
   });
 
   it("cancels everything and calls back no more", () => {
@@ -228,7 +248,7 @@ describe("tracker", () => {
     const hops = tracker();
     const done = vi.fn();
     hops.run(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 300 }, done);
-    vi.advanceTimersByTime(300);
+    vi.advanceTimersByTime(FRAME + 300);
     expect(done).toHaveBeenCalledOnce();
     hops.cancel();
     expect(FakeAnimation.all[0].playState).toBe("finished");

@@ -105,10 +105,14 @@ export function entrance(end: number) {
   };
   return {
     /** Adds a tween. A part created mid-entrance passes `from` (its creation time on the entrance's clock)
-     *  and starts at once, on the entrance's clock, so it still ends with the others. */
+     *  and starts at once, on the entrance's clock, so it still ends with the others. Such a part always
+     *  fills backwards: the entrance's start time resolves a frame or more after play(), so a part started
+     *  by a wall-clock timer usually begins in the future, and without a backwards fill it would show none
+     *  of its first frame until then (a chip held invisible would paint at full opacity). */
     add(el: Element | null | undefined, keyframes: Keyframe[], tween: Tween, { from = 0, fill }: { from?: number; fill?: FillMode } = {}) {
       if (!canAnimate(el) || !("style" in el)) return undefined;
       const spanned = span(keyframes, tween, from, end);
+      if (playing) fill = fill === "forwards" || fill === "both" ? "both" : "backwards";
       const timing = { duration: end - from, ...(fill ? { fill } : {}) };
       if (playing) {
         const animation = el.animate(spanned, timing);

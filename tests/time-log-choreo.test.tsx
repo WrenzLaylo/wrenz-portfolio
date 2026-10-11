@@ -6,7 +6,7 @@ import { registry } from "@/motion/registry";
 import type { SceneEnv } from "@/motion/types";
 import choreo from "@/scenes/time-log/choreo";
 import { TimeLogScene } from "@/scenes/time-log/Scene";
-import { animationsOf, declarations, FakeAnimation, finishAll, installFakeWaapi, removeFakeWaapi, sample, setWidth } from "./helpers";
+import { animationsOf, declarations, FakeAnimation, finishAll, FRAME, installFakeWaapi, removeFakeWaapi, sample, setWidth } from "./helpers";
 
 const project = fullProjects.find((p) => p.slug === "time-log")!;
 const markup = renderToStaticMarkup(<TimeLogScene project={project} />);
@@ -81,7 +81,7 @@ describe("time-log choreography", () => {
     handle.enter();
     expect(FakeAnimation.all.length).toBeGreaterThan(20);
     expect(FakeAnimation.all.every((a) => a.options.duration === DESKTOP_END && a.playState === "running")).toBe(true);
-    vi.advanceTimersByTime(DESKTOP_END - 1);
+    vi.advanceTimersByTime(FRAME + DESKTOP_END - 1); // the start time resolves a frame after enter()
     expect(root.classList.contains("live")).toBe(false);
     vi.advanceTimersByTime(1);
     expect(root.classList.contains("live")).toBe(true);
@@ -152,8 +152,16 @@ describe("time-log choreography", () => {
     expect(chips).toHaveLength(5);
     expect([...chips].map((c) => c.textContent)).toEqual(["7:21", "7:23", "12:04", "12:47", "3:00"]);
     // chip i holds invisible until its own take-off, then flies for 0.74 s
+    // The entrance's clock started a frame after enter(), so the chips start a frame in the future: until
+    // then only a backwards fill keeps them invisible (their first frame), instead of painted at their origin.
+    for (const chip of chips) {
+      const a = anim(chip);
+      expect(a.currentTime).toBeLessThan(0);
+      expect(a.effectApplied).toBe(true);
+      expect(a.keyframes[0].opacity).toBe(0);
+    }
     const last = anim(chips[4]);
-    expect(last.options).toMatchObject({ duration: DESKTOP_END - FLY(0), fill: "forwards" });
+    expect(last.options).toMatchObject({ duration: DESKTOP_END - FLY(0), fill: "both" });
     expect(sample(last.keyframes, "opacity", (FLY(4) - FLY(0) - 1) / (DESKTOP_END - FLY(0)))).toBe(0);
     finishAll();
     expect(root.querySelectorAll(".chip")).toHaveLength(0);
