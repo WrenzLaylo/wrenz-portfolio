@@ -1,0 +1,153 @@
+/* Pig Feeds POS world (ported from the approved slice). The server markup is the finished frame: loops
+   run only under .live, several cycles per iteration (each iteration boundary wakes the main thread). */
+[data-scene="pos"] { background: var(--color-sky-pos); }
+[data-scene="pos"] .hill { position: absolute; left: 0; width: 100%; }
+[data-scene="pos"] .hill-far { top: calc(410 * var(--u)); height: calc(300 * var(--u)); }
+[data-scene="pos"] .hill-near { top: calc(482 * var(--u)); height: calc(240 * var(--u)); }
+
+/* Screens: the counter on the desktop grid, the order rail on the mobile grid (clarification 5). */
+[data-scene="pos"] .shot-d { display: block; }
+[data-scene="pos"] .shot-m { display: none; }
+[data-scene="pos"] .screen-saved {
+  position: absolute; top: calc(10 * var(--u)); bottom: calc(10 * var(--u)); right: calc(10 * var(--u));
+  width: calc((100% - 20 * var(--u)) * 0.3298); opacity: 0;
+}
+[data-scene="pos"] .screen-saved img { width: 100%; height: 100%; object-fit: cover; border-radius: 0 calc(18 * var(--u)) calc(18 * var(--u)) 0; }
+
+/* Coins, jar, sack, pellets */
+[data-scene="pos"] .coin { opacity: 0; }
+[data-scene="pos"] .coin-y {
+  width: 100%; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center;
+  background: var(--color-yolk); box-shadow: inset 0 0 0 calc(3 * var(--u)) var(--color-yolk-shade);
+}
+[data-scene="pos"] .coin-y span { font: 800 calc(17 * var(--u))/1 var(--font-display); color: var(--color-ink); }
+[data-scene="pos"] .jar { transform-origin: 50% 100%; }
+[data-scene="pos"] .sack { transform: rotate(96deg); transform-origin: 50% 50%; }
+/* Without .live (no JavaScript, reduced motion, or before the entrance) the pellets rest as a still pour. */
+[data-scene="pos"] .pellet {
+  display: block; aspect-ratio: 1; border-radius: 50%; background: #8C5A2B;
+  transform: translate(calc(var(--dr) * 18 * var(--u)), calc(var(--i) * 10 * var(--u)));
+}
+
+/* The pig: tail, body, head and jaw are separate HTML-level layers; legs and shadow are HTML too. */
+[data-scene="pos"] .pig-inner { position: relative; }
+[data-scene="pos"] .pig-shadow { position: absolute; left: 24%; top: 91.818%; width: 72%; height: 7.273%; border-radius: 50%; background: rgb(31 27 36 / 0.12); }
+[data-scene="pos"] .pig-leg {
+  position: absolute; left: var(--l); top: var(--t); width: 6.667%; height: var(--h);
+  border-radius: 999px; background: #E7739F; transform-origin: 50% 0%;
+}
+[data-scene="pos"] .pig-body { position: relative; display: block; width: 100%; height: auto; }
+[data-scene="pos"] .pig-tail { position: absolute; left: 88.667%; top: 31.818%; width: 11.333%; height: auto; transform-origin: 29.4% 85%; }
+[data-scene="pos"] .pig-head { position: absolute; left: 0; top: 4.545%; width: 50%; transform-origin: 86.67% 68%; }
+[data-scene="pos"] .pig-head > svg:not(.pig-jaw) { display: block; width: 100%; height: auto; }
+[data-scene="pos"] .pig-jaw { position: absolute; left: 25.333%; top: 82.667%; width: 29.333%; height: auto; transform-origin: 50% 33.3%; }
+[data-scene="pos"] .pig-eye, [data-scene="pos"] .pig-ear { transform-box: fill-box; transform-origin: 50% 50%; }
+[data-scene="pos"] .pig-ear { transform-origin: 50% 100%; }
+
+/* The mobile grid (stage narrower than 760 px). */
+@container stage (width < 760px) {
+  [data-scene="pos"] .hill-far { top: calc(214 * var(--u)); height: calc(170 * var(--u)); }
+  [data-scene="pos"] .hill-near { top: calc(250 * var(--u)); height: calc(130 * var(--u)); }
+  [data-scene="pos"] .shot-d { display: none; }
+  [data-scene="pos"] .shot-m { display: block; }
+  [data-scene="pos"] .screen-saved { left: calc(10 * var(--u)); width: auto; }
+  [data-scene="pos"] .screen-saved img { border-radius: calc(18 * var(--u)); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Six falls per 3 s iteration. --fall and --drift are pixels set by the choreography. */
+  [data-scene="pos"].live .pellet { animation: pos-pellet 3s linear infinite; animation-delay: calc(var(--i) * -0.0833s); }
+  [data-scene="pos"].live .screen-saved { animation: pos-saved 6s ease-in-out infinite; }
+  [data-scene="pos"].live .pig-tail { animation: pos-wag 4s linear infinite; }
+  [data-scene="pos"].live .pig-head { animation: pos-eat 6.5s infinite; }
+  [data-scene="pos"].live .pig-jaw { animation: pos-chew 6.5s ease-in-out infinite; }
+  [data-scene="pos"].live .sack { animation: pos-wobble 5.6s linear infinite; }
+  /* One 6 s story: four coins leave the laptop for the jar, then the screen shows the saved sale. */
+  [data-scene="pos"].live .coin:not(.coin-burst) { animation: pos-coin-x 6s linear infinite; animation-delay: calc(var(--i) * 0.15s); }
+  [data-scene="pos"].live .coin:not(.coin-burst) .coin-y { animation: pos-coin-y 6s infinite; animation-delay: calc(var(--i) * 0.15s); }
+  [data-scene="pos"].live .jar { animation: pos-jar 6s infinite; }
+}
+
+@keyframes pos-pellet {
+  0.00% { transform: translate(0, 0); animation-timing-function: cubic-bezier(.55, .085, .68, .53); }
+  16.67% { transform: translate(calc(var(--dr) * var(--drift, 20px) + 4px), var(--fall, 44px)); }
+  16.68% { transform: translate(0, 0); animation-timing-function: cubic-bezier(.55, .085, .68, .53); }
+  33.33% { transform: translate(calc(var(--dr) * var(--drift, 20px) + 4px), var(--fall, 44px)); }
+  33.34% { transform: translate(0, 0); animation-timing-function: cubic-bezier(.55, .085, .68, .53); }
+  50.00% { transform: translate(calc(var(--dr) * var(--drift, 20px) + 4px), var(--fall, 44px)); }
+  50.01% { transform: translate(0, 0); animation-timing-function: cubic-bezier(.55, .085, .68, .53); }
+  66.67% { transform: translate(calc(var(--dr) * var(--drift, 20px) + 4px), var(--fall, 44px)); }
+  66.68% { transform: translate(0, 0); animation-timing-function: cubic-bezier(.55, .085, .68, .53); }
+  83.33% { transform: translate(calc(var(--dr) * var(--drift, 20px) + 4px), var(--fall, 44px)); }
+  83.34% { transform: translate(0, 0); animation-timing-function: cubic-bezier(.55, .085, .68, .53); }
+  100.00% { transform: translate(calc(var(--dr) * var(--drift, 20px) + 4px), var(--fall, 44px)); }
+}
+@keyframes pos-saved { 0%, 22% { opacity: 0; } 26%, 70% { opacity: 1; } 75%, 100% { opacity: 0; } }
+@keyframes pos-wag {
+  0.00% { transform: rotate(-22deg); animation-timing-function: ease-in-out; }
+  12.50% { transform: rotate(22deg); animation-timing-function: ease-in-out; }
+  25.00% { transform: rotate(-22deg); animation-timing-function: ease-in-out; }
+  37.50% { transform: rotate(22deg); animation-timing-function: ease-in-out; }
+  50.00% { transform: rotate(-22deg); animation-timing-function: ease-in-out; }
+  62.50% { transform: rotate(22deg); animation-timing-function: ease-in-out; }
+  75.00% { transform: rotate(-22deg); animation-timing-function: ease-in-out; }
+  87.50% { transform: rotate(22deg); animation-timing-function: ease-in-out; }
+  100% { transform: rotate(-22deg); }
+}
+@keyframes pos-eat {
+  0% { transform: rotate(0deg); animation-timing-function: cubic-bezier(.45, 0, .55, 1); }
+  6.15% { transform: rotate(-14deg); }
+  66% { transform: rotate(-14deg); animation-timing-function: cubic-bezier(.34, 1.56, .64, 1); }
+  73% { transform: rotate(0deg); }
+  100% { transform: rotate(0deg); }
+}
+@keyframes pos-chew {
+  0%, 6.15% { transform: rotate(0deg); }
+  9.23% { transform: rotate(9deg); }
+  12.30% { transform: rotate(0deg); }
+  15.38% { transform: rotate(9deg); }
+  18.46% { transform: rotate(0deg); }
+  21.53% { transform: rotate(9deg); }
+  24.61% { transform: rotate(0deg); }
+  27.69% { transform: rotate(9deg); }
+  30.77% { transform: rotate(0deg); }
+  33.84% { transform: rotate(9deg); }
+  36.92% { transform: rotate(0deg); }
+  40.00% { transform: rotate(9deg); }
+  43.07% { transform: rotate(0deg); }
+  46.15% { transform: rotate(9deg); }
+  49.23% { transform: rotate(0deg); }
+  52.30% { transform: rotate(9deg); }
+  55.38% { transform: rotate(0deg); }
+  58.46% { transform: rotate(9deg); }
+  61.54% { transform: rotate(0deg); }
+  64.61% { transform: rotate(9deg); }
+  67%, 100% { transform: rotate(0deg); }
+}
+@keyframes pos-wobble {
+  0.00% { transform: rotate(95deg); animation-timing-function: ease-in-out; }
+  25.00% { transform: rotate(97deg); animation-timing-function: ease-in-out; }
+  50.00% { transform: rotate(95deg); animation-timing-function: ease-in-out; }
+  75.00% { transform: rotate(97deg); animation-timing-function: ease-in-out; }
+  100% { transform: rotate(95deg); }
+}
+@keyframes pos-coin-x {
+  0% { transform: translateX(0); opacity: 1; }
+  11.67% { transform: translateX(var(--cx)); opacity: 1; }
+  12%, 100% { transform: translateX(var(--cx)); opacity: 0; }
+}
+@keyframes pos-coin-y {
+  0% { transform: translateY(0) scale(.4); animation-timing-function: cubic-bezier(.25, .46, .45, .94); }
+  2.5% { transform: translateY(calc(var(--cu) * -0.62)) scale(1); animation-timing-function: cubic-bezier(.25, .46, .45, .94); }
+  5.83% { transform: translateY(calc(var(--cu) * -1)) scale(1); animation-timing-function: cubic-bezier(.55, .085, .68, .53); }
+  11.67%, 100% { transform: translateY(var(--cd)) scale(1); }
+}
+@keyframes pos-jar {
+  0%, 11.4% { transform: rotate(0deg); }
+  13% { transform: rotate(4deg); }
+  15% { transform: rotate(-3deg); }
+  17% { transform: rotate(4deg); }
+  19% { transform: rotate(-3deg); }
+  21% { transform: rotate(2deg); }
+  23%, 100% { transform: rotate(0deg); }
+}
