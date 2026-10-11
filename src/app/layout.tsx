@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Albert_Sans, Gabarito } from "next/font/google";
+import { buildMetadata, viewport as siteViewport } from "@/lib/metadata";
 import "./globals.css";
 
 // Both are variable fonts: omitting `weight` loads the whole axis. `subsets` decides what is preloaded,
@@ -9,14 +10,8 @@ const gabarito = Gabarito({ subsets: ["latin"], variable: "--font-gabarito", dis
 // Italic must stay in this same call: a separate call gets another family name and <em> would not use it.
 const albert = Albert_Sans({ subsets: ["latin"], style: ["normal", "italic"], variable: "--font-albert", display: "swap" });
 
-// Interim metadata: Task 2.1 replaces it with buildMetadata().
-export const metadata: Metadata = {
-  metadataBase: new URL("https://wrenz-portfolio.vercel.app"),
-  title: "Wrenz Laylo, Developer, AI & Automation",
-  description:
-    "Wrenz Laylo builds business systems, Python automation, WordPress engineering and applied AI around real operations. Based in Bataan, Philippines.",
-  alternates: { canonical: "/" },
-};
+export const metadata: Metadata = buildMetadata();
+export const viewport: Viewport = siteViewport;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
