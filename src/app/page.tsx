@@ -4,12 +4,13 @@ import { Icon } from "@/components/Icon";
 import { Nav } from "@/components/Nav";
 import MotionRuntime from "@/motion/MotionRuntime";
 import { Sprite } from "@/components/Sprite";
+import { Work } from "@/components/Work";
 import { sections } from "@/content/sections";
 import { site } from "@/content/site";
 import { buildJsonLd, jsonLdHtml } from "@/lib/jsonld";
 
-// Shell: Task 3.2 replaces the hero section, Tasks 3.x add the worlds, Phase 4 fills the other sections.
-const shellSections = [sections.work, sections.moreWork, sections.capabilities, sections.experience, sections.about, sections.contact];
+// Shell: Task 3.2 replaces the hero section, Phase 4 fills the other sections.
+const shellSections = [sections.moreWork, sections.capabilities, sections.experience, sections.about, sections.contact];
 
 export default function Home() {
   return (
@@ -37,6 +38,7 @@ export default function Home() {
             </div>
           </div>
         </section>
+        <Work />
         {shellSections.map((s) => (
           <section key={s.id} id={s.id} className="section" aria-labelledby={`${s.id}-h`}>
             <div className="wrap">
