@@ -82,7 +82,7 @@ export function span(keyframes: Keyframe[], { at = 0, dur, ease, before }: Tween
   return out;
 }
 
-type Part = { el: HTMLElement | SVGElement; keyframes: Keyframe[]; saved: Array<[string, string, string]> };
+type Part = { el: HTMLElement | SVGElement; keyframes: Keyframe[]; timing: KeyframeAnimationOptions; saved: Array<[string, string, string]> };
 
 /** One entrance: every animation in it runs from the entrance's start to `end` ms (see span()). Chrome
  *  re-layerizes the whole page each time a compositor animation starts after a delay or finishes on its
@@ -109,8 +109,9 @@ export function entrance(end: number) {
     add(el: Element | null | undefined, keyframes: Keyframe[], tween: Tween, { from = 0, fill }: { from?: number; fill?: FillMode } = {}) {
       if (!canAnimate(el) || !("style" in el)) return undefined;
       const spanned = span(keyframes, tween, from, end);
+      const timing = { duration: end - from, ...(fill ? { fill } : {}) };
       if (playing) {
-        const animation = el.animate(spanned, { duration: end - from, ...(fill ? { fill } : {}) });
+        const animation = el.animate(spanned, timing);
         const clock = all[0]?.startTime;
         if (typeof clock === "number") animation.startTime = clock + from;
         all.push(animation);
@@ -120,14 +121,14 @@ export function entrance(end: number) {
       const first = valueOf(spanned[0]);
       const saved = Object.keys(first).map((name): [string, string, string] => [name, target.style.getPropertyValue(name), target.style.getPropertyPriority(name)]);
       for (const name of Object.keys(first)) target.style.setProperty(name, String(first[name]));
-      parts.push({ el: target, keyframes: spanned, saved });
+      parts.push({ el: target, keyframes: spanned, timing, saved });
       return undefined;
     },
     /** Plays the entrance; `onEnd` runs in the frame where it ends (at once if there is nothing to play). */
     play(onEnd: () => void) {
       playing = true;
       const queued = parts.splice(0);
-      for (const part of queued) all.push(part.el.animate(part.keyframes, { duration: end }));
+      for (const part of queued) all.push(part.el.animate(part.keyframes, part.timing));
       for (const part of queued.reverse()) restore(part); // newest first, so a shared property ends as the server sent it
       if (all[0]) all[0].addEventListener("finish", onEnd, { once: true });
       else onEnd();
