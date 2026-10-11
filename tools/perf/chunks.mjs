@@ -20,9 +20,7 @@ const walk = (dir) =>
 const found = new Map();
 for (const file of walk(".next/static/chunks")) {
   const src = readFileSync(file, "utf8");
-  // registerPlugin is a GSAP core method name; it survives minification, so it marks a chunk that holds GSAP.
-  const gsapInside = src.includes("registerPlugin");
-  for (const m of src.matchAll(/["'`]choreo:([a-z0-9-]+)["'`]/g)) found.set(m[1], { file, gz: gzipSync(src).length, gsapInside });
+  for (const m of src.matchAll(/["'`]choreo:([a-z0-9-]+)["'`]/g)) found.set(m[1], { file, gz: gzipSync(src).length });
 }
 
 let failed = false;
@@ -35,10 +33,6 @@ for (const name of expected) {
   }
   const sharedWith = expected.filter((other) => other !== name && found.get(other)?.file === hit.file);
   if (sharedWith.length) console.log(`WARN choreo:${name} shares its chunk with ${sharedWith.join(", ")}: the size below is the whole shared file`);
-  if (hit.gsapInside) {
-    console.log(`FAIL choreo:${name} is bundled with GSAP: GSAP must stay its own dynamic import (src/motion/MotionRuntime.tsx)`);
-    failed = true;
-  }
   const kb = (hit.gz / 1024).toFixed(1);
   const ok = hit.gz <= LIMIT;
   failed ||= !ok;

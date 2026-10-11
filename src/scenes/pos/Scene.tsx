@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Img } from "@/components/Img";
 import { sceneText } from "@/content/scene-text";
 import type { FullProject } from "@/content/types";
 import { cssVars, type Grid, type Place, place } from "../grid";
@@ -71,12 +71,12 @@ export function PosScene({ project }: { project: FullProject }) {
         <div className="pos" data-part="laptop" style={place({ x: 228, y: 12, w: 572, mx: 34, my: 16, mw: 292 })}>
           <div className="device device-laptop">
             <div className="device-screen">
-              <Image className="device-shot shot-d" src={shot.src} alt={shot.alt} width={shot.width} height={shot.height} sizes={SCREEN_SIZES} loading="lazy" />
-              <Image className="device-shot shot-m" src="/work/pos/rail.webp" alt={shot.alt} width={600} height={400} sizes="90vw" loading="lazy" />
+              <Img className="device-shot shot-d" src={shot.src} alt={shot.alt} width={shot.width} height={shot.height} sizes={SCREEN_SIZES} loading="lazy" />
+              <Img className="device-shot shot-m" src="/work/pos/rail.webp" alt={shot.alt} width={600} height={400} sizes="90vw" loading="lazy" />
               {/* Only the order rail changes when the sale is saved, so the overlay is just that strip. */}
               <div className="screen-saved loop" aria-hidden="true">
-                <Image className="shot-d" src="/work/pos/saved-rail-desk.webp" alt="" width={436} height={950} sizes="200px" loading="lazy" />
-                <Image className="shot-m" src="/work/pos/rail-saved.webp" alt="" width={600} height={400} sizes="90vw" loading="lazy" />
+                <Img className="shot-d" src="/work/pos/saved-rail-desk.webp" alt="" width={436} height={950} sizes="200px" loading="lazy" />
+                <Img className="shot-m" src="/work/pos/rail-saved.webp" alt="" width={600} height={400} sizes="90vw" loading="lazy" />
               </div>
             </div>
             <span className="device-base" aria-hidden="true" />

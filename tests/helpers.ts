@@ -1,4 +1,4 @@
-import type { gsap as Gsap } from "gsap";
+import { vi } from "vitest";
 
 export class FakeIO {
   static all: FakeIO[] = [];
@@ -98,11 +98,212 @@ export function setWidth(el: HTMLElement, width: number) {
 
 export const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
-/** Jump every running GSAP animation to its end, firing callbacks; repeats for animations those callbacks start. */
-export function finishAllTweens(gsap: typeof Gsap) {
-  for (let round = 0; round < 20; round++) {
-    const running = gsap.globalTimeline.getChildren(false, true, true).filter((a) => a.progress() < 1);
-    if (running.length === 0) return;
-    for (const animation of running) animation.progress(1);
+// ---------------------------------------------------------------------------------------------------
+// A fake Web Animations API. jsdom has none, so choreography tests install this one. Animations run on
+// the (fake) timers: a play() stays pending for one FRAME (start time null, current time held at 0), as
+// in Chrome, then the animation finishes when the clock passes its end, so vi.advanceTimersByTime() moves
+// animations and setTimeout callbacks together, in order. A start time set in the future is the before
+// phase, where only a backwards (or both) fill shows the first keyframe (`effectApplied`).
+// It is strict where browsers are: element.animate throws a TypeError on an easing the browser does not
+// know (so `linear()` is refused here, as in older browsers) and on offsets outside 0..1 or out of
+// order. It also refuses any property but transform and opacity (and the individual transform
+// properties), so every choreography stays on the compositor.
+
+const PROPERTIES = new Set(["transform", "opacity", "translate", "rotate", "scale"]);
+const KEYWORD_EASINGS = new Set(["linear", "ease", "ease-in", "ease-out", "ease-in-out", "step-start", "step-end"]);
+
+function checkEasing(easing: unknown) {
+  if (easing === undefined) return;
+  const value = String(easing);
+  if (KEYWORD_EASINGS.has(value)) return;
+  const m = /^cubic-bezier\(\s*([-\d.e]+)\s*,\s*([-\d.e]+)\s*,\s*([-\d.e]+)\s*,\s*([-\d.e]+)\s*\)$/.exec(value);
+  const [x1, , x2] = m ? m.slice(1).map(Number) : [];
+  if (!m || !(x1 >= 0 && x1 <= 1 && x2 >= 0 && x2 <= 1)) throw new TypeError(`Invalid easing: ${value}`);
+}
+
+function checkKeyframes(keyframes: Keyframe[]) {
+  let last = 0;
+  for (const keyframe of keyframes) {
+    for (const key of Object.keys(keyframe)) {
+      if (key !== "offset" && key !== "easing" && !PROPERTIES.has(key)) throw new TypeError(`Not a compositor property: ${key}`);
+    }
+    checkEasing(keyframe.easing);
+    if (keyframe.offset == null) continue;
+    const offset = Number(keyframe.offset);
+    if (!(offset >= 0 && offset <= 1) || offset < last) throw new TypeError(`Offsets must be in 0..1 and in order: ${offset}`);
+    last = offset;
   }
 }
+
+/** How long a play() stays pending: Chrome resolves an animation's start time on a later frame. */
+export const FRAME = 16;
+
+export class FakeAnimation extends EventTarget {
+  static all: FakeAnimation[] = [];
+  playState: AnimationPlayState = "running";
+  /** True from play() (or creation) until the start time is resolved, one FRAME later. */
+  pending = true;
+  private start: number | null = null;
+  private hold: number | null = 0; // the current time while pending or paused
+  private timer: ReturnType<typeof setTimeout> | undefined;
+  private ready: ReturnType<typeof setTimeout> | undefined;
+  readonly duration: number;
+  constructor(
+    readonly target: Element,
+    readonly keyframes: Keyframe[],
+    readonly options: KeyframeAnimationOptions,
+  ) {
+    super();
+    if (!Array.isArray(keyframes)) throw new TypeError("Use a keyframe array");
+    checkKeyframes(keyframes);
+    checkEasing(options.easing);
+    this.duration = Number(options.delay ?? 0) + Number(options.duration ?? 0);
+    if (!Number.isFinite(this.duration) || this.duration < 0) throw new TypeError("Invalid duration");
+    FakeAnimation.all.push(this);
+    this.resolveLater();
+  }
+  /** null while pending, as in browsers. */
+  get startTime() {
+    return this.start;
+  }
+  /** Setting a start time resolves a pending play; it may lie in the future (the before phase). */
+  set startTime(time: number | null) {
+    if (time === null) return;
+    clearTimeout(this.ready);
+    this.pending = false;
+    this.hold = null;
+    this.start = time;
+    this.playState = "running";
+    this.schedule();
+  }
+  /** Negative when the start time lies in the future. */
+  get currentTime() {
+    if (this.playState === "idle") return null;
+    if (this.playState === "finished") return this.duration;
+    if (this.hold !== null) return this.hold;
+    return Date.now() - (this.start ?? Date.now());
+  }
+  /** Whether the effect shows now. In the before phase (current time < delay) only a backwards or both
+   *  fill shows the first keyframe; after the end only a forwards or both fill shows the last. */
+  get effectApplied() {
+    const time = this.currentTime;
+    if (time === null) return false;
+    const fill = this.options.fill ?? "auto";
+    if (time < Number(this.options.delay ?? 0)) return fill === "backwards" || fill === "both";
+    if (time >= this.duration) return fill === "forwards" || fill === "both";
+    return true;
+  }
+  play() {
+    if (this.playState !== "paused") return;
+    this.playState = "running";
+    this.pending = true;
+    this.resolveLater();
+  }
+  pause() {
+    if (this.playState !== "running") return;
+    this.hold = this.currentTime;
+    this.start = null;
+    this.pending = false;
+    this.playState = "paused";
+    clearTimeout(this.timer);
+    clearTimeout(this.ready);
+  }
+  cancel() {
+    clearTimeout(this.timer);
+    clearTimeout(this.ready);
+    if (this.playState === "idle") return;
+    this.playState = "idle";
+    this.pending = false;
+    this.start = null;
+    this.hold = null;
+    this.dispatchEvent(new Event("cancel"));
+  }
+  finish() {
+    clearTimeout(this.timer);
+    clearTimeout(this.ready);
+    if (this.playState === "finished" || this.playState === "idle") return;
+    this.playState = "finished";
+    this.pending = false;
+    this.dispatchEvent(new Event("finish"));
+  }
+  private resolveLater() {
+    clearTimeout(this.ready);
+    this.ready = setTimeout(() => {
+      this.pending = false;
+      this.start = Date.now() - (this.hold ?? 0);
+      this.hold = null;
+      this.schedule();
+    }, FRAME);
+  }
+  private schedule() {
+    clearTimeout(this.timer);
+    if (this.start === null) return;
+    this.timer = setTimeout(() => this.finish(), Math.max(0, this.start + this.duration - Date.now()));
+  }
+}
+
+/** Gives every element a fake `animate()`. Call with vi.useFakeTimers() active; undo with removeFakeWaapi(). */
+export function installFakeWaapi() {
+  FakeAnimation.all = [];
+  Element.prototype.animate = function (this: Element, keyframes: Keyframe[] | PropertyIndexedKeyframes | null, options?: number | KeyframeAnimationOptions) {
+    const timing = typeof options === "number" ? { duration: options } : (options ?? {});
+    return new FakeAnimation(this, keyframes as Keyframe[], timing) as unknown as Animation;
+  };
+}
+
+export function removeFakeWaapi() {
+  delete (Element.prototype as Partial<Element>).animate;
+}
+
+/** Animations on `el` that have not finished or been cancelled. */
+export const animationsOf = (el: Element) =>
+  FakeAnimation.all.filter((a) => a.target === el && (a.playState === "running" || a.playState === "paused"));
+
+/** Runs the clock until every playing animation and pending timer is done (paused animations stay). */
+export const finishAll = () => vi.runAllTimers();
+
+/** The value a keyframe list gives `property` at progress `t` (0..1), honouring each segment's easing.
+ *  Reads the `index`-th number of the value (e.g. 1 for the y of "0px -360px"). */
+export function sample(keyframes: Keyframe[], property: string, t: number, index = 0): number {
+  const n = keyframes.length;
+  const offsets = keyframes.map((k, i) => (k.offset == null ? (n === 1 ? 1 : i / (n - 1)) : Number(k.offset)));
+  const num = (k: Keyframe) => Number(String(k[property]).match(/-?[\d.]+(?:e-?\d+)?/g)?.[index]);
+  let i = 0;
+  while (i < n - 2 && t >= offsets[i + 1]) i++;
+  const span = offsets[i + 1] - offsets[i];
+  const local = span > 0 ? Math.min(1, Math.max(0, (t - offsets[i]) / span)) : 1;
+  const progress = ease(String(keyframes[i].easing ?? "linear"), local);
+  return num(keyframes[i]) + (num(keyframes[i + 1]) - num(keyframes[i])) * progress;
+}
+
+/** Evaluates a CSS easing keyword or cubic-bezier() at x (0..1). */
+export function ease(easing: string, x: number): number {
+  if (easing === "linear") return x;
+  if (easing === "step-end") return x < 1 ? 0 : 1;
+  if (easing === "step-start") return x > 0 ? 1 : 0;
+  const m = /^cubic-bezier\(([^)]+)\)$/.exec(easing);
+  if (!m) throw new Error(`Cannot evaluate easing ${easing}`);
+  const [x1, y1, x2, y2] = m[1].split(",").map(Number);
+  const bx = (s: number) => 3 * (1 - s) ** 2 * s * x1 + 3 * (1 - s) * s * s * x2 + s ** 3;
+  let lo = 0;
+  let hi = 1;
+  let s = x;
+  for (let k = 0; k < 60; k++) {
+    s = (lo + hi) / 2;
+    if (bx(s) < x) lo = s;
+    else hi = s;
+  }
+  return 3 * (1 - s) ** 2 * s * y1 + 3 * (1 - s) * s * s * y2 + s ** 3;
+}
+
+/** The public path an <img> shows: the `url` of a Next image-optimizer src, or the src itself. */
+export function imageSrc(img: Element): string {
+  const src = img.getAttribute("src") ?? "";
+  return src.startsWith("/_next/image?") ? (new URL(src, "http://x").searchParams.get("url") ?? "") : src;
+}
+
+/** An element's inline declarations, sorted ("" when it has none): what the server sent, however serialized. */
+export const declarations = (el: Element) => {
+  const style = (el as HTMLElement).style;
+  return Array.from(style, (p) => `${p}:${style.getPropertyValue(p)}${style.getPropertyPriority(p) ? "!important" : ""}`).sort().join(";");
+};

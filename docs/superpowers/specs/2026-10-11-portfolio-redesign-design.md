@@ -30,7 +30,8 @@ Success means all of the following, measured as described in Section 14:
 
 These were settled in brainstorming (2026-10-09 to 2026-10-11) and are not reopened by this spec.
 
-- **Stack stays:** Next 16.2.12 (App Router), React 19.2.4, Tailwind 4, GSAP 3.15, Vercel. This Next differs
+- **Stack stays:** Next 16.2.12 (App Router), React 19.2.4, Tailwind 4, GSAP 3.15 (replaced by the Web
+  Animations API on 2026-10-11, see "Decisions after approval" below), Vercel. This Next differs
   from older versions: read `node_modules/next/dist/docs/` before using any API (`AGENTS.md`).
 - **Architecture is approach A:** the server renders all page and scene markup. Idle loops and parallax
   are CSS. One small client runtime loads per-scene GSAP choreography on demand. (Changed in review: the
@@ -47,6 +48,31 @@ These were settled in brainstorming (2026-10-09 to 2026-10-11) and are not reope
   client. The "Freelance" and "Self-employed" rows are removed.
 - **Portrait:** keep the current crop on its dark studio backdrop (no cut-out).
 - **Every project has a mascot.** All mascots share the pig's face grammar.
+
+### Decisions after approval
+
+- **2026-10-11, at the Phase 3 gate (Wrenz): GSAP is replaced by the Web Animations API.** Wrenz chose
+  "Rewrite on WAAPI" after the gate found the cause of its 4x frame misses: on this page every frame in which
+  GSAP changes a transform or opacity on the main thread makes Chrome re-layerize the whole page (about 9 ms
+  per frame at 4x CPU), and GSAP's 27 KB put the page over the 150 KB JS budget. The choreographies now call
+  `element.animate()` with transform and opacity keyframes through `src/motion/waapi.ts` (GSAP's eases as
+  cubic-béziers or exact keyframes, never `linear()`), so they run on the compositor. The `gsap` package is
+  removed, `SceneEnv` has no `gsap`, and the runtime loads only the world's choreography chunk. Read "GSAP"
+  as "the Web Animations API" in the stack line above, the architecture line, Section 6, Section 11 (Rule 3,
+  the contract and runtime step 2) and the Section 12 JS row. Two deliberate differences from the GSAP
+  timelines: the time-log total appears in one step instead of counting up (every text change costs a
+  re-layerization), and the POS loops start when the legs settle (1.35 s) instead of at 1.1 s. Measured on
+  the same laptop (Task 3.7a): full re-layerizations during the wheel scroll fall from 224 to 40 at
+  1440 / 4x and from 217 to 37 at 390 / 4x; the POS entrance from 28 to 5, the time-log entrance from 233
+  to 18, a pig hop at 390 from about 227 to 26 per 4 s. JS by load + 2 s falls from 180.9 to 148.9 KB
+  gzipped together with the next decision. The 4x frame budgets at 1440 still miss; the remaining costs
+  are listed in the Task 3.7a report.
+- **2026-10-11, same task: images render without next/image's client component.** `next/image` is a client
+  component worth about 5.9 KB gzipped, which kept the page over 150 KB once GSAP was gone. A server
+  component, `src/components/Img.tsx`, renders the identical `<img>` markup: the same srcset of `/_next/image`
+  optimizer URLs (AVIF, then WebP, quality 75), sizes, width and height, lazy or eager loading and
+  `fetchPriority`. A test compares its markup with `next/image` for every image on the page and fails on
+  any runtime import of `next/image`. Read "`next/image`" in Sections 6, 7 and 12 as this component.
 
 ## 3. Page structure
 
@@ -386,37 +412,46 @@ rendered. With no JavaScript, or with reduced motion, the page is complete and s
   tail, body and head as separate elements, with the jaw inside the head).
 
 **Rule 3: GSAP only does one-shot choreography and short interactions.** Per-frame tweens of SVG internals
-are banned.
+are banned. (2026-10-11: the Web Animations API does this job instead of GSAP; see Section 2, "Decisions
+after approval".)
 
 **The choreography contract.** The start state must be applied while the world is still off-screen. An
 IntersectionObserver callback arrives a frame after the edge has already painted, so a choreography that
 first sets its start state "on entry" would show the end state, snap to the start state, then animate.
-The slice avoids this with `gsap.set` at init (scenes.js 149-153, 230-236). So a choreography is
-**prepared** as soon as its module is ready, and **entered** later:
+The slice avoids this with `gsap.set` at init (scenes.js 149-153, 230-236); the WAAPI choreographies write
+the start frame inline at prepare in the same way (`entrance()` in `src/motion/waapi.ts`). So a choreography
+is **prepared** as soon as its module is ready, and **entered** later.
+
+(Changed 2026-10-11: GSAP removed, see "Decisions after approval" in Section 2. `SceneEnv` no longer has a
+`gsap` field, and the handle is `SceneHandle` with a `name`. This block is the contract as in
+`src/motion/types.ts`.)
 
 ```ts
 export type SceneEnv = {
-  gsap: typeof import("gsap").gsap;
-  mobile: boolean;       // the stage is on its mobile grid (container width ≤ 700 px)
+  mobile: boolean;       // the stage is on its mobile grid (width < STAGE_GRID_SWITCH, 760 px)
   pointer: boolean;      // matchMedia("(hover: hover) and (pointer: fine) and (min-width: 1024px)")
   skipEntrance: boolean; // true when the scene was already visible when its module arrived
 };
-export type Scene = { enter(): void; cleanup(): void };
-// prepare: applies the start state only when !env.skipEntrance, wires interactions, returns the handle
-export type Choreo = (root: HTMLElement, env: SceneEnv) => Scene;
+/** `name` is the literal "choreo:<folder>"; tools/perf/chunks.mjs finds each chunk by it. */
+export type SceneHandle = { name: string; enter(): void; cleanup(): void };
+// prepare: applies the start state only when !env.skipEntrance, wires interactions, returns the handle.
+// It animates with element.animate() through src/motion/waapi.ts (transform and opacity keyframes,
+// cubic-bezier eases, never linear()); without the Web Animations API it keeps the server end state.
+export type Choreo = (root: HTMLElement, env: SceneEnv) => SceneHandle;
 ```
 
-`enter()` plays the entrance (or does nothing when skipping) and then adds `.live`. `cleanup()` kills its
-tweens, removes listeners and any elements it appended, and restores the server end state.
+`enter()` plays the entrance (or does nothing when skipping) and then adds `.live`. `cleanup()` cancels its
+animations, removes listeners and any elements it appended, and restores the server end state.
 
-The contract does not depend on GSAP beyond `env.gsap`, so a choreography can be rewritten with the Web
-Animations API without touching the runtime. That is the first lever if the 4x CPU budget fails.
+The contract did not depend on GSAP beyond `env.gsap`, so the choreographies were rewritten with the Web
+Animations API without changing the runtime's shape (2026-10-11, the first lever after the 4x CPU budget
+failed at the Phase 3 gate).
 
 **The runtime** (`MotionRuntime.tsx`, `"use client"`, renders nothing, mounted once by `page.tsx`):
 1. Starts in `useEffect`, after hydration. If reduced motion is set, it only installs the nav listener.
 2. One `IntersectionObserver` watches every `[data-scene]`. When a world is within 50% of a viewport of the
-   screen, it starts `Promise.all([import("gsap"), registry[slug]()])`, so exactly one GSAP chunk exists.
-   As soon as both resolve it calls the choreography (prepare), with `skipEntrance` true if the world is
+   screen, it starts `registry[slug]()` (changed 2026-10-11: there is no GSAP chunk to load any more).
+   As soon as it resolves it calls the choreography (prepare), with `skipEntrance` true if the world is
    already visible at that moment.
 3. When a prepared world enters the viewport it calls `enter()`. A world prepared with `skipEntrance`
    gets `enter()` at once, which just adds `.live`: no snap back to the start state.

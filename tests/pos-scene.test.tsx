@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { fullProjects } from "@/content/projects";
 import { fullScenes } from "@/scenes";
 import { PosScene } from "@/scenes/pos/Scene";
+import { imageSrc } from "./helpers";
 
 const project = fullProjects.find((p) => p.slug === "pos")!;
 const doc = new JSDOM(`<body>${renderToStaticMarkup(<PosScene project={project} />)}</body>`).window.document;
@@ -16,8 +17,8 @@ describe("POS scene", () => {
   });
 
   it("shows the counter on the desktop grid and the rail on the mobile grid, both with the real alt text", () => {
-    const counter = stage.querySelector('img[src="/work/pos/counter.webp"]');
-    const rail = stage.querySelector('img[src="/work/pos/rail.webp"]');
+    const counter = [...stage.querySelectorAll("img")].find((i) => imageSrc(i) === "/work/pos/counter.webp");
+    const rail = [...stage.querySelectorAll("img")].find((i) => imageSrc(i) === "/work/pos/rail.webp");
     expect(counter?.classList.contains("shot-d")).toBe(true);
     expect(rail?.classList.contains("shot-m")).toBe(true);
     expect(counter?.getAttribute("alt")).toBe(project.shot?.alt);

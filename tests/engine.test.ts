@@ -4,7 +4,6 @@ import { startMotion } from "@/motion/engine";
 import type { Choreo, ChoreoLoader, SceneEnv } from "@/motion/types";
 import { FakeIO, FakeRO, fakeWindow, flush, mountStages, setWidth } from "./helpers";
 
-const gsapStub = { gsap: {} as SceneEnv["gsap"] };
 const NEAR = "50% 0px 50% 0px";
 const ENTER = "0px 0px -15% 0px";
 const observer = (rootMargin?: string) => FakeIO.all.find((o) => o.options.rootMargin === rootMargin) as FakeIO;
@@ -30,10 +29,9 @@ const started: Array<() => void> = [];
 
 function start(opts: { reduced?: boolean; pointer?: boolean } = {}, registry: Record<string, ChoreoLoader> = {}) {
   const win = fakeWindow(opts);
-  const loadGsap = vi.fn(async () => gsapStub);
-  const stop = startMotion({ doc: document, win, registry, loadGsap });
+  const stop = startMotion({ doc: document, win, registry });
   started.push(stop);
-  return { win, loadGsap, stop };
+  return { win, stop };
 }
 
 describe("startMotion", () => {
@@ -60,14 +58,15 @@ describe("startMotion", () => {
   it("loads only registered scenes, once, when they come within half a viewport", async () => {
     const [pos, hero] = mountStages("pos", "hero");
     const r = recorder();
-    const { loadGsap } = start({}, { pos: r.loader });
+    start({}, { pos: r.loader });
     observer(NEAR).fire(hero, true);
     observer(NEAR).fire(pos, true);
     observer(NEAR).fire(pos, true);
     await flush();
     expect(r.loader).toHaveBeenCalledOnce();
-    expect(loadGsap).toHaveBeenCalledOnce();
     expect(r.envs).toHaveLength(1);
+    // The choreographies run on the Web Animations API: no animation library is loaded or passed in.
+    expect(Object.keys(r.envs[0]).sort()).toEqual(["mobile", "pointer", "skipEntrance"]);
   });
 
   it("enters a world prepared off-screen when it scrolls into view", async () => {

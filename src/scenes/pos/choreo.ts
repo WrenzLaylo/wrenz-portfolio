@@ -1,13 +1,28 @@
 import type { Choreo } from "@/motion/types";
+import { bounce, EASE, entrance, px, tracker } from "@/motion/waapi";
 
 // Distances in design px for each grid (from the slice). The CSS loops read the first five as pixels.
 const DESKTOP = { fall: 84, drift: 22, cx: 196, cu: 86, cd: 80, walk: -640, drop: -360 };
 const MOBILE = { fall: 26, drift: 12, cx: 142, cu: 40, cd: 62, walk: -320, drop: -200 };
 const LOOP_VARS = ["fall", "drift", "cx", "cu", "cd"] as const;
 
+// The entrance ends when the legs settle (0.3 + 5 × 0.18 + 0.15 s). GSAP added .live at 1.1 s, when the
+// sack had landed; here .live comes with the end, so the loops start in the same frame the entrance ends.
+const END = 1350;
+
+/** A leg swings from ±14° to ∓14° and back, five 0.18 s swings (sine.inOut), then rests in 0.15 s. */
+const legSwings = (from: number): Keyframe[] => [
+  ...Array.from({ length: 6 }, (_, k) => ({
+    transform: `rotate(${k % 2 ? -from : from}deg)`,
+    offset: (k * 180) / 1050,
+    easing: k < 5 ? EASE.sineInOut : EASE.power1Out,
+  })),
+  { transform: "rotate(0deg)", offset: 1 },
+];
+
 /** Pig Feeds POS: the laptop rises, the pig walks in, the sack drops and starts pouring; then .live
  *  starts the CSS loops. Hover or tap the pig and it hops while three coins pop out. */
-const choreo: Choreo = (root, { gsap, mobile, skipEntrance }) => {
+const choreo: Choreo = (root, { mobile, skipEntrance }) => {
   const one = (selector: string) => root.querySelector<HTMLElement>(selector);
   const all = (selector: string) => Array.from(root.querySelectorAll<HTMLElement>(selector));
   const D = mobile ? MOBILE : DESKTOP;
@@ -17,22 +32,23 @@ const choreo: Choreo = (root, { gsap, mobile, skipEntrance }) => {
   const pig = one('[data-part="pig"]');
   const inner = one('[data-part="pig-inner"]');
   const sack = one('[data-part="sack"]');
-  const legsA = all(".pig-leg.leg-a");
-  const legsB = all(".pig-leg.leg-b");
   const burst = all('[data-part="burst"]');
-  const targets = [laptop, pig, inner, sack, ...legsA, ...legsB, ...burst].filter((el): el is HTMLElement => el !== null);
 
   let ready = false;
   let hopping = false;
-  let entrance: { kill(): unknown } | undefined;
-  const owned: Array<{ kill(): unknown }> = [];
+  const intro = entrance(END);
+  const hops = tracker();
 
   if (!skipEntrance) {
-    if (laptop) gsap.set(laptop, { y: 40 * u });
-    if (pig) gsap.set(pig, { x: D.walk * u });
-    if (sack) gsap.set(sack, { y: D.drop * u, rotation: 40, autoAlpha: 0 });
-    if (legsA.length) gsap.set(legsA, { rotation: -14 });
-    if (legsB.length) gsap.set(legsB, { rotation: 14 });
+    intro.add(laptop, [{ transform: `translateY(${px(40 * u)})` }, { transform: "translateY(0px)" }], { dur: 600, ease: EASE.power3Out });
+    intro.add(pig, [{ transform: `translateX(${px(D.walk * u)})` }, { transform: "translateX(0px)" }], { at: 300, dur: 900, ease: EASE.power2Out });
+    for (const leg of all(".pig-leg.leg-a")) intro.add(leg, legSwings(-14), { at: 300, dur: 1050 });
+    for (const leg of all(".pig-leg.leg-b")) intro.add(leg, legSwings(14), { at: 300, dur: 1050 });
+    // The sack rests at its CSS rotate(96deg). The individual translate and rotate properties compose with
+    // that transform, so the sack starts at 40° and the CSS wobble loop takes over untouched.
+    intro.add(sack, [{ opacity: 0 }, { opacity: 1 }], { at: 350, dur: 100, ease: EASE.power1Out });
+    intro.add(sack, bounce((p) => ({ translate: `0px ${px(D.drop * u * (1 - p))}` })), { at: 350, dur: 700 });
+    intro.add(sack, [{ rotate: "-56deg" }, { rotate: "0deg" }], { at: 350, dur: 700, ease: EASE.power2Out });
   }
 
   const goLive = () => {
@@ -42,25 +58,23 @@ const choreo: Choreo = (root, { gsap, mobile, skipEntrance }) => {
 
   const hop = () => {
     if (hopping || !ready || !inner) return;
+    const lift = (p: number) => ({ transform: `translateY(${px(-24 * u * p)})` });
+    // Up 24 px in 0.18 s (power2.out), down in 0.4 s (bounce.out).
+    const up = hops.run(inner, [{ ...lift(0), offset: 0, easing: EASE.power2Out }, ...bounce((p) => lift(1 - p), 180 / 580, 1)], { duration: 580 }, () => {
+      hopping = false;
+    });
+    if (!up) return;
     hopping = true;
-    owned.push(
-      gsap
-        .timeline({ onComplete: () => { hopping = false; } })
-        .to(inner, { y: -24 * u, duration: 0.18, ease: "power2.out" })
-        .to(inner, { y: 0, duration: 0.4, ease: "bounce.out" }),
-    );
     burst.forEach((coin, i) => {
-      owned.push(
-        gsap.fromTo(
-          coin,
-          { x: 0, y: 0, scale: 0.5, autoAlpha: 1 },
-          {
-            keyframes: [
-              { x: (i - 1) * 46 * u, y: -86 * u, scale: 1, duration: 0.35, ease: "power2.out" },
-              { y: -40 * u, autoAlpha: 0, duration: 0.35, ease: "power2.in" },
-            ],
-          },
-        ),
+      const x = px((i - 1) * 46 * u);
+      hops.run(
+        coin,
+        [
+          { transform: "translate(0px, 0px) scale(0.5)", opacity: 1, easing: EASE.power2Out },
+          { transform: `translate(${x}, ${px(-86 * u)}) scale(1)`, opacity: 1, offset: 0.5, easing: EASE.power2In },
+          { transform: `translate(${x}, ${px(-40 * u)}) scale(1)`, opacity: 0 },
+        ],
+        { duration: 700 },
       );
     });
   };
@@ -72,34 +86,11 @@ const choreo: Choreo = (root, { gsap, mobile, skipEntrance }) => {
     name: "choreo:pos",
     enter() {
       for (const key of LOOP_VARS) root.style.setProperty(`--${key}`, `${D[key] * u}px`);
-      if (skipEntrance) {
-        goLive();
-        return;
-      }
-      const legs = [...legsA, ...legsB];
-      const tl = gsap.timeline();
-      if (laptop) tl.to(laptop, { y: 0, duration: 0.6, ease: "power3.out" }, 0);
-      if (pig) tl.to(pig, { x: 0, duration: 0.9, ease: "power2.out" }, 0.3);
-      if (legsA.length) tl.to(legsA, { rotation: 14, duration: 0.18, yoyo: true, repeat: 4, ease: "sine.inOut" }, 0.3);
-      if (legsB.length) tl.to(legsB, { rotation: -14, duration: 0.18, yoyo: true, repeat: 4, ease: "sine.inOut" }, 0.3);
-      if (legs.length) tl.to(legs, { rotation: 0, duration: 0.15 }, 1.2);
-      if (sack) {
-        tl.to(sack, { autoAlpha: 1, duration: 0.1 }, 0.35)
-          .to(sack, { y: 0, duration: 0.7, ease: "bounce.out" }, 0.35)
-          .to(sack, { rotation: 96, duration: 0.7, ease: "power2.out" }, 0.35);
-      }
-      tl.add(() => {
-        // Hand the sack back to CSS (its resting rotate(96deg) and the wobble loop).
-        if (sack) gsap.set(sack, { clearProps: "transform" });
-        goLive();
-      }, 1.1);
-      entrance = tl;
+      intro.play(goLive);
     },
     cleanup() {
-      entrance?.kill();
-      for (const animation of owned.splice(0)) animation.kill();
-      gsap.killTweensOf(targets);
-      gsap.set(targets, { clearProps: "transform,opacity,visibility" });
+      intro.cancel();
+      hops.cancel();
       pig?.removeEventListener("pointerenter", hop);
       pig?.removeEventListener("pointerdown", hop);
       for (const key of LOOP_VARS) root.style.removeProperty(`--${key}`);

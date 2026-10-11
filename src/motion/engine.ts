@@ -1,12 +1,11 @@
 import { STAGE_GRID_SWITCH } from "@/scenes/grid";
 import { startPointer } from "./pointer";
-import type { Choreo, ChoreoLoader, Gsap, SceneHandle } from "./types";
+import type { Choreo, ChoreoLoader, SceneHandle } from "./types";
 
 export type EngineDeps = {
   doc: Document;
   win: Window & typeof globalThis;
   registry: Readonly<Partial<Record<string, ChoreoLoader>>>;
-  loadGsap: () => Promise<{ gsap: Gsap }>;
 };
 
 type Rec = {
@@ -24,7 +23,7 @@ const ENTER = "0px 0px -15% 0px"; // play the entrance once the stage is 15% of 
 const STATE_CLASSES = ["live", "paused", "ready"];
 
 /** Starts the page's motion and returns a stop function that undoes everything (spec §11). */
-export function startMotion({ doc, win, registry, loadGsap }: EngineDeps): () => void {
+export function startMotion({ doc, win, registry }: EngineDeps): () => void {
   const teardown: Array<() => void> = [];
   const stop = () => {
     for (const fn of teardown.splice(0).reverse()) fn();
@@ -55,7 +54,6 @@ export function startMotion({ doc, win, registry, loadGsap }: EngineDeps): () =>
   // World stages switch grid by their own width; the hero switches by the viewport (spec clarification 2).
   const gridIsMobile = (stage: HTMLElement) =>
     stage.dataset.tier === "hero" ? win.matchMedia("(max-width: 767px)").matches : widthOf(stage) < STAGE_GRID_SWITCH;
-  let gsap: Gsap | undefined;
   let disposed = false;
 
   for (const stage of stages) {
@@ -65,10 +63,10 @@ export function startMotion({ doc, win, registry, loadGsap }: EngineDeps): () =>
   }
 
   const prepare = (rec: Rec) => {
-    if (!rec.choreo || !gsap) return;
+    if (!rec.choreo) return;
     const skipEntrance = rec.entered || visible.has(rec.stage);
     rec.width = widthOf(rec.stage);
-    rec.handle = rec.choreo(rec.stage, { gsap, mobile: rec.width < STAGE_GRID_SWITCH, pointer, skipEntrance });
+    rec.handle = rec.choreo(rec.stage, { mobile: rec.width < STAGE_GRID_SWITCH, pointer, skipEntrance });
     if (skipEntrance) {
       rec.entered = true;
       rec.handle.enter();
@@ -85,7 +83,7 @@ export function startMotion({ doc, win, registry, loadGsap }: EngineDeps): () =>
     }
   });
 
-  // Near: load GSAP + the world's choreography, then prepare it.
+  // Near: load the world's choreography, then prepare it.
   const near = new win.IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
@@ -93,10 +91,9 @@ export function startMotion({ doc, win, registry, loadGsap }: EngineDeps): () =>
         if (!entry.isIntersecting || !rec || rec.loading) continue;
         rec.loading = true;
         near.unobserve(rec.stage);
-        Promise.all([loadGsap(), rec.loader()]).then(
-          ([g, mod]) => {
+        rec.loader().then(
+          (mod) => {
             if (disposed) return;
-            gsap = g.gsap;
             rec.choreo = mod.default;
             prepare(rec);
           },
