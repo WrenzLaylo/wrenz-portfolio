@@ -1,0 +1,133 @@
+/* AGG Doors time-log world (ported from the approved slice). The sheet is div/span only. Every font size
+   is at least 13 design px on the desktop grid and 12 on the mobile grid. */
+[data-scene="time-log"] { background: var(--color-sky-time-log); }
+
+/* Clock */
+[data-scene="time-log"] .hand { display: block; border-radius: 999px; background: var(--color-ink); transform-origin: 50% 100%; }
+[data-scene="time-log"] .hand-h { height: calc(130 * var(--u)); transform: rotate(90deg); }
+[data-scene="time-log"] .hand-m { height: calc(150 * var(--u)); transform: rotate(0deg); }
+[data-scene="time-log"] .hand-s { height: calc(165 * var(--u)); background: var(--color-coral); transform: rotate(200deg); }
+[data-scene="time-log"] .hand-cap {
+  display: block; aspect-ratio: 1; border-radius: 50%; background: var(--color-ink);
+  box-shadow: inset 0 0 0 calc(10 * var(--u)) var(--color-ink), inset 0 0 0 calc(16 * var(--u)) var(--color-coral);
+}
+
+/* The timesheet window */
+[data-scene="time-log"] .win-copy {
+  position: absolute; inset: 0; background: var(--color-paper); border: 2px solid var(--color-ink);
+  border-radius: calc(30 * var(--u)); transform: translate(calc(24 * var(--u)), calc(-24 * var(--u)));
+}
+[data-scene="time-log"] .pill {
+  position: absolute; display: inline-flex; align-items: center; height: calc(30 * var(--u)); padding: 0 calc(14 * var(--u));
+  border-radius: 999px; background: var(--color-ink); color: var(--color-paper); font: 700 calc(13 * var(--u))/1 var(--font-display); white-space: nowrap;
+}
+[data-scene="time-log"] .backed { right: calc(18 * var(--u)); top: calc(-15 * var(--u)); }
+[data-scene="time-log"] .win { position: relative; background: var(--color-ink); border-radius: calc(30 * var(--u)); padding: 0 calc(10 * var(--u)) calc(10 * var(--u)); }
+[data-scene="time-log"] .win-bar { height: calc(42 * var(--u)); display: flex; align-items: center; gap: calc(7 * var(--u)); padding-left: calc(10 * var(--u)); }
+[data-scene="time-log"] .win-bar i { width: calc(11 * var(--u)); aspect-ratio: 1; border-radius: 50%; background: var(--color-paper); }
+[data-scene="time-log"] .win-bar span { margin-left: calc(14 * var(--u)); color: var(--color-paper); font: 600 calc(13 * var(--u))/1 var(--font-body); }
+[data-scene="time-log"] .sheet {
+  overflow: clip; background: var(--color-white); border-radius: calc(20 * var(--u)) calc(20 * var(--u)) 0 0;
+  font: 500 calc(14 * var(--u))/1 var(--font-body); font-variant-numeric: tabular-nums;
+}
+[data-scene="time-log"] .sh-row { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); }
+[data-scene="time-log"] .sh-row > span {
+  position: relative; display: flex; align-items: center; height: calc(36 * var(--u));
+  padding-left: calc(10 * var(--u)); border-bottom: 1px solid var(--color-sheet-line); white-space: nowrap;
+}
+[data-scene="time-log"] .sh-row > span:first-child { padding-left: calc(14 * var(--u)); }
+[data-scene="time-log"] .sh-head > span { font-weight: 700; font-size: calc(13 * var(--u)); color: var(--color-muted); background: #F4F7FB; }
+[data-scene="time-log"] .sh-row .t { font-weight: 700; }
+[data-scene="time-log"] .sh-row.live > span { background: #EEF5FF; }
+[data-scene="time-log"] .flash { position: absolute; inset: 2px; z-index: 0; border-radius: calc(6 * var(--u)); background: var(--color-clock); opacity: 0; pointer-events: none; }
+[data-scene="time-log"] .v, [data-scene="time-log"] .total { position: relative; z-index: 1; }
+[data-scene="time-log"] .win-tabs { display: flex; gap: calc(4 * var(--u)); padding: calc(6 * var(--u)) calc(10 * var(--u)); background: var(--color-sheets-green); border-radius: 0 0 calc(20 * var(--u)) calc(20 * var(--u)); }
+[data-scene="time-log"] .win-tabs span { color: #fff; font: 600 calc(13 * var(--u))/1 var(--font-body); padding: calc(7 * var(--u)) calc(12 * var(--u)); border-radius: 999px; }
+[data-scene="time-log"] .win-tabs .on { background: #0E5C35; }
+[data-scene="time-log"] .badge {
+  position: absolute; right: calc(-6 * var(--u)); bottom: calc(-22 * var(--u)); display: inline-flex; align-items: center; gap: calc(8 * var(--u));
+  height: calc(44 * var(--u)); padding: 0 calc(18 * var(--u)); border-radius: 999px; white-space: nowrap;
+  background: var(--color-sheets-green); color: #fff; font: 700 calc(15 * var(--u))/1 var(--font-display);
+  box-shadow: 0 calc(4 * var(--u)) 0 #0B4A2A, 0 0 0 3px var(--color-sky-time-log);
+}
+[data-scene="time-log"] .badge svg { width: calc(16 * var(--u)); height: calc(16 * var(--u)); fill: currentColor; }
+[data-scene="time-log"] .burst { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
+[data-scene="time-log"] .burst i {
+  position: absolute; left: calc(-5 * var(--u)); top: calc(-5 * var(--u)); width: calc(10 * var(--u)); aspect-ratio: 1;
+  border-radius: 50%; background: var(--color-yolk); opacity: 0;
+}
+[data-scene="time-log"] .burst i:nth-child(2n) { background: var(--color-coral); }
+[data-scene="time-log"] .burst i:nth-child(3n) { background: var(--color-avatar); }
+
+/* Chat bubbles and the chips the choreography flies into the sheet */
+[data-scene="time-log"] .bubbles { display: grid; gap: calc(12 * var(--u)); }
+[data-scene="time-log"] .bubble {
+  position: relative; display: flex; align-items: center; gap: calc(10 * var(--u)); width: max-content; max-width: 100%;
+  height: calc(46 * var(--u)); padding: 0 calc(16 * var(--u)) 0 calc(8 * var(--u)); transform-origin: 0% 100%;
+  background: var(--color-white); border-radius: calc(16 * var(--u)) calc(16 * var(--u)) calc(16 * var(--u)) calc(4 * var(--u));
+  box-shadow: 0 calc(4 * var(--u)) 0 #B6CFF0; font: 600 calc(15 * var(--u))/1 var(--font-body); white-space: nowrap;
+}
+[data-scene="time-log"] .bubble b {
+  flex: none; display: grid; place-items: center; width: calc(30 * var(--u)); aspect-ratio: 1; border-radius: 50%;
+  background: var(--color-avatar); color: #fff; font: 700 calc(14 * var(--u))/1 var(--font-display);
+}
+[data-scene="time-log"] .ok {
+  position: absolute; right: calc(-8 * var(--u)); top: calc(-8 * var(--u)); display: grid; place-items: center;
+  width: calc(22 * var(--u)); aspect-ratio: 1; border-radius: 50%; background: var(--color-sheets-green); color: #fff;
+}
+[data-scene="time-log"] .ok svg { width: 60%; height: 60%; fill: currentColor; }
+[data-scene="time-log"] .dots { display: flex; gap: calc(5 * var(--u)); padding: 0 calc(4 * var(--u)); }
+[data-scene="time-log"] .dots i { width: calc(8 * var(--u)); aspect-ratio: 1; border-radius: 50%; background: var(--color-muted); }
+[data-scene="time-log"] .chip {
+  position: absolute; left: 0; top: 0; z-index: 2; display: inline-flex; align-items: center; height: calc(30 * var(--u));
+  padding: 0 calc(11 * var(--u)); border-radius: 999px; background: var(--color-avatar); color: #fff;
+  font: 700 calc(14 * var(--u))/1 var(--font-display); font-variant-numeric: tabular-nums; white-space: nowrap; will-change: transform;
+}
+
+/* The mobile grid (stage narrower than 760 px): six sheet columns and smaller (but >= 12 design px) type. */
+@container stage (width < 760px) {
+  [data-scene="time-log"] .hand-h { height: calc(47 * var(--u)); }
+  [data-scene="time-log"] .hand-m { height: calc(69 * var(--u)); }
+  [data-scene="time-log"] .hand-s { height: calc(77 * var(--u)); }
+  [data-scene="time-log"] .hand-cap { box-shadow: inset 0 0 0 calc(5 * var(--u)) var(--color-ink), inset 0 0 0 calc(9 * var(--u)) var(--color-coral); }
+  [data-scene="time-log"] .sh-row { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  [data-scene="time-log"] .sheet { font-size: calc(12.5 * var(--u)); border-radius: calc(12 * var(--u)) calc(12 * var(--u)) 0 0; }
+  [data-scene="time-log"] .sh-head > span { font-size: calc(12 * var(--u)); }
+  [data-scene="time-log"] .sh-row > span { height: calc(25 * var(--u)); padding-left: calc(6 * var(--u)); }
+  [data-scene="time-log"] .sh-row > span:first-child { padding-left: calc(9 * var(--u)); }
+  [data-scene="time-log"] .win { border-radius: calc(18 * var(--u)); padding: 0 calc(6 * var(--u)) calc(6 * var(--u)); }
+  [data-scene="time-log"] .win-copy { border-radius: calc(18 * var(--u)); transform: translate(calc(12 * var(--u)), calc(-14 * var(--u))); }
+  [data-scene="time-log"] .win-bar { height: calc(26 * var(--u)); gap: calc(4 * var(--u)); padding-left: calc(6 * var(--u)); }
+  [data-scene="time-log"] .win-bar i { width: calc(7 * var(--u)); }
+  [data-scene="time-log"] .win-bar span { font-size: calc(12 * var(--u)); margin-left: calc(6 * var(--u)); }
+  [data-scene="time-log"] .win-tabs { border-radius: 0 0 calc(12 * var(--u)) calc(12 * var(--u)); padding: calc(4 * var(--u)) calc(6 * var(--u)); }
+  [data-scene="time-log"] .win-tabs span { font-size: calc(12 * var(--u)); padding: calc(5 * var(--u)) calc(8 * var(--u)); }
+  [data-scene="time-log"] .pill { height: calc(22 * var(--u)); font-size: calc(12 * var(--u)); padding: 0 calc(9 * var(--u)); }
+  [data-scene="time-log"] .backed { top: calc(-11 * var(--u)); right: calc(10 * var(--u)); }
+  [data-scene="time-log"] .badge {
+    height: calc(32 * var(--u)); font-size: calc(12.5 * var(--u)); padding: 0 calc(12 * var(--u));
+    right: calc(-4 * var(--u)); bottom: calc(-14 * var(--u)); gap: calc(5 * var(--u));
+  }
+  [data-scene="time-log"] .badge svg { width: calc(12 * var(--u)); height: calc(12 * var(--u)); }
+  [data-scene="time-log"] .bubbles { gap: calc(8 * var(--u)); }
+  [data-scene="time-log"] .bubble {
+    height: calc(32 * var(--u)); font-size: calc(13 * var(--u)); gap: calc(6 * var(--u)); padding: 0 calc(10 * var(--u)) 0 calc(5 * var(--u));
+    border-radius: calc(12 * var(--u)) calc(12 * var(--u)) calc(12 * var(--u)) calc(3 * var(--u));
+  }
+  [data-scene="time-log"] .bubble b { width: calc(22 * var(--u)); font-size: calc(12 * var(--u)); }
+  [data-scene="time-log"] .ok { width: calc(16 * var(--u)); right: calc(-5 * var(--u)); top: calc(-5 * var(--u)); }
+  [data-scene="time-log"] .chip { height: calc(22 * var(--u)); font-size: calc(12 * var(--u)); padding: 0 calc(8 * var(--u)); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-scene="time-log"].live .hand-s { animation: tl-tick 60s steps(60) infinite; }
+  /* Four bounces per iteration; .on is added when the typing bubble has been revealed. */
+  [data-scene="time-log"] .typing.on .dots i { animation: tl-dot 4.8s ease-in-out infinite; }
+  [data-scene="time-log"] .typing.on .dots i:nth-child(2) { animation-delay: 0.15s; }
+  [data-scene="time-log"] .typing.on .dots i:nth-child(3) { animation-delay: 0.3s; }
+}
+@keyframes tl-tick { from { transform: rotate(200deg); } to { transform: rotate(560deg); } }
+@keyframes tl-dot {
+  0%, 12.5%, 25%, 37.5%, 50%, 62.5%, 75%, 87.5%, 100% { transform: translateY(0); }
+  6.25%, 31.25%, 56.25%, 81.25% { transform: translateY(calc(-4 * var(--u))); }
+}

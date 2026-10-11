@@ -3,6 +3,7 @@ import type { CompactProject, CompactSlug, FullProject, FullSlug } from "@/conte
 import { BasicVignette } from "./basic/BasicVignette";
 import { BasicWorld } from "./basic/BasicWorld";
 import { PosScene } from "./pos/Scene";
+import { TimeLogScene } from "./time-log/Scene";
 
 export type FullScene = ComponentType<{ project: FullProject }>;
 export type CompactScene = ComponentType<{ project: CompactProject }>;
@@ -11,7 +12,7 @@ export type CompactScene = ComponentType<{ project: CompactProject }>;
  *  Phases 3, 5, 6 and 7 swap each basic scene for the designed one. */
 export const fullScenes: Record<FullSlug, FullScene> = {
   pos: PosScene,
-  "time-log": BasicWorld,
+  "time-log": TimeLogScene,
   "service-areas": BasicWorld,
   katiwala: BasicWorld,
   stockroom: BasicWorld,
