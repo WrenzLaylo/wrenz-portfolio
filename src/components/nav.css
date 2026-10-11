@@ -1,6 +1,6 @@
 .nav { position: sticky; top: 0; z-index: 40; height: 64px; background: var(--color-paper); }
 .nav-bar { height: 100%; display: flex; align-items: center; gap: 28px; }
-.wordmark { margin-right: auto; font: 800 22px/1 var(--font-display); letter-spacing: -0.02em; text-decoration: none; }
+.wordmark { display: inline-flex; align-items: center; min-height: 44px; margin-right: auto; font: 800 22px/1 var(--font-display); letter-spacing: -0.02em; text-decoration: none; }
 .nav-menu a { font-weight: 600; font-size: 16px; text-decoration: none; padding: 12px 0; }
 .nav-menu a:hover { text-decoration: underline; text-decoration-thickness: 3px; text-decoration-color: var(--color-yolk); text-underline-offset: 6px; }
 .nav-toggle {
