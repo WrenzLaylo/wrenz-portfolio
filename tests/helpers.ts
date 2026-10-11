@@ -302,6 +302,35 @@ export function imageSrc(img: Element): string {
   return src.startsWith("/_next/image?") ? (new URL(src, "http://x").searchParams.get("url") ?? "") : src;
 }
 
+/** The body of the first `<prelude> { ... }` block in a stylesheet (nested blocks included), or null.
+ *  Comments are stripped first. */
+export function cssBlock(css: string, prelude: string): string | null {
+  const source = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const at = source.indexOf(`${prelude} {`);
+  if (at < 0) return null;
+  const open = source.indexOf("{", at);
+  let depth = 0;
+  for (let i = open; i < source.length; i++) {
+    if (source[i] === "{") depth++;
+    else if (source[i] === "}" && --depth === 0) return source.slice(open + 1, i);
+  }
+  return null;
+}
+
+/** The declarations of the first rule whose selector list is exactly `selector`, as a map, or null. */
+export function cssRule(css: string, selector: string): Map<string, string> | null {
+  for (const [, selectors, body] of css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{};]+)\{([^{}]*)\}/g)) {
+    if (selectors.trim().replace(/\s+/g, " ") !== selector) continue;
+    const declarations = new Map<string, string>();
+    for (const part of body.split(";")) {
+      const colon = part.indexOf(":");
+      if (colon > 0) declarations.set(part.slice(0, colon).trim(), part.slice(colon + 1).trim());
+    }
+    return declarations;
+  }
+  return null;
+}
+
 /** An element's inline declarations, sorted ("" when it has none): what the server sent, however serialized. */
 export const declarations = (el: Element) => {
   const style = (el as HTMLElement).style;
