@@ -6,6 +6,7 @@ import { pageCopy } from "@/content/page-copy";
 import * as projectsModule from "@/content/projects";
 import * as recognitionModule from "@/content/recognition";
 import * as routesModule from "@/content/routes";
+import * as sceneTextModule from "@/content/scene-text";
 import * as sectionsModule from "@/content/sections";
 import * as siteModule from "@/content/site";
 
@@ -18,6 +19,7 @@ export const contentModules: Record<string, unknown> = {
   experience: experienceModule,
   capabilities: capabilitiesModule,
   routes: routesModule,
+  sceneText: sceneTextModule,
 };
 
 function* strings(value: unknown, path: string): Generator<[string, string]> {
