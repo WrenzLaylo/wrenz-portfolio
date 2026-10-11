@@ -1,6 +1,5 @@
 import { Footer } from "@/components/Footer";
-import { HeroHeading } from "@/components/HeroHeading";
-import { Icon } from "@/components/Icon";
+import { Hero } from "@/components/Hero";
 import { Nav } from "@/components/Nav";
 import MotionRuntime from "@/motion/MotionRuntime";
 import { Sprite } from "@/components/Sprite";
@@ -9,7 +8,7 @@ import { sections } from "@/content/sections";
 import { site } from "@/content/site";
 import { buildJsonLd, jsonLdHtml } from "@/lib/jsonld";
 
-// Shell: Task 3.2 replaces the hero section, Phase 4 fills the other sections.
+// Shell sections until Phase 4 replaces them.
 const shellSections = [sections.moreWork, sections.capabilities, sections.experience, sections.about, sections.contact];
 
 export default function Home() {
@@ -22,22 +21,7 @@ export default function Home() {
       </a>
       <Nav />
       <main id="main" tabIndex={-1}>
-        <section id="top" className="hero" aria-labelledby="hero-h">
-          <div className="wrap hero-copy">
-            <HeroHeading />
-            <p className="lede">{site.lede}</p>
-            <div className="cta-row">
-              <a className="btn btn-primary" href="#work">
-                {site.labels.work}
-                <Icon name="arrow-up-right" />
-              </a>
-              <a className="btn btn-secondary" href={site.resume} download>
-                {site.labels.resume}
-                <Icon name="download" />
-              </a>
-            </div>
-          </div>
-        </section>
+        <Hero />
         <Work />
         {shellSections.map((s) => (
           <section key={s.id} id={s.id} className="section" aria-labelledby={`${s.id}-h`}>

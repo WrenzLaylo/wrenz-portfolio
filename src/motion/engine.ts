@@ -52,11 +52,14 @@ export function startMotion({ doc, win, registry, loadGsap }: EngineDeps): () =>
   const recs = new Map<HTMLElement, Rec>();
   const pointer = win.matchMedia("(hover: hover) and (pointer: fine) and (min-width: 1024px)").matches;
   const widthOf = (el: HTMLElement) => el.getBoundingClientRect().width;
+  // World stages switch grid by their own width; the hero switches by the viewport (spec clarification 2).
+  const gridIsMobile = (stage: HTMLElement) =>
+    stage.dataset.tier === "hero" ? win.matchMedia("(max-width: 767px)").matches : widthOf(stage) < STAGE_GRID_SWITCH;
   let gsap: Gsap | undefined;
   let disposed = false;
 
   for (const stage of stages) {
-    onMobileGrid.set(stage, widthOf(stage) < STAGE_GRID_SWITCH);
+    onMobileGrid.set(stage, gridIsMobile(stage));
     const loader = registry[stage.dataset.scene ?? ""];
     if (loader) recs.set(stage, { stage, loader, loading: false, entered: false, width: 0 });
   }
@@ -133,7 +136,7 @@ export function startMotion({ doc, win, registry, loadGsap }: EngineDeps): () =>
   const resize = new win.ResizeObserver(() => {
     win.clearTimeout(timer);
     timer = win.setTimeout(() => {
-      for (const stage of stages) onMobileGrid.set(stage, widthOf(stage) < STAGE_GRID_SWITCH);
+      for (const stage of stages) onMobileGrid.set(stage, gridIsMobile(stage));
       for (const rec of recs.values()) {
         if (!rec.handle || Math.abs(widthOf(rec.stage) - rec.width) < 1) continue;
         rec.handle.cleanup();

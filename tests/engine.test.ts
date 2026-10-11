@@ -205,4 +205,16 @@ describe("startMotion", () => {
     expect(moved(pos)).toBe("");
     expect(win.listenerCount("pointermove")).toBe(0);
   });
+
+  it("judges the hero's grid by the viewport, so pointer parallax moves it on desktop", () => {
+    const [hero] = mountStages("hero");
+    hero.dataset.tier = "hero";
+    setWidth(hero, 560); // narrower than the 760 px world switch, but the hero follows the viewport
+    const { win, stop } = start({ pointer: true }, {});
+    observer(undefined).fire(hero, true);
+    win.emit("pointermove", { clientX: 1440, clientY: 900 });
+    win.runFrames(5);
+    expect((hero.querySelector(".mouse") as HTMLElement).style.transform).toMatch(/^translate3d\(/);
+    stop();
+  });
 });
