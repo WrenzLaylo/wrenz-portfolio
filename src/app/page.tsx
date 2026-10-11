@@ -2,6 +2,7 @@ import { Footer } from "@/components/Footer";
 import { HeroHeading } from "@/components/HeroHeading";
 import { Icon } from "@/components/Icon";
 import { Nav } from "@/components/Nav";
+import MotionRuntime from "@/motion/MotionRuntime";
 import { Sprite } from "@/components/Sprite";
 import { sections } from "@/content/sections";
 import { site } from "@/content/site";
@@ -45,6 +46,7 @@ export default function Home() {
         ))}
       </main>
       <Footer />
+      <MotionRuntime />
     </>
   );
 }
