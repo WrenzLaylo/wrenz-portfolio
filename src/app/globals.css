@@ -10,6 +10,7 @@
 @import "../components/lab.css" layer(components);
 @import "../scenes/basic/scene.css" layer(scenes);
 @import "../scenes/pos/scene.css" layer(scenes);
+@import "../scenes/time-log/scene.css" layer(scenes);
 
 /* `static` emits every token even though plain CSS (not utilities) uses most of them. */
 @theme static {

@@ -83,11 +83,37 @@ describe("scene stylesheets", () => {
   ];
 
   it("switch grids at the shared STAGE_GRID_SWITCH width", () => {
+    const allowed = [`width < ${STAGE_GRID_SWITCH}px`, `width >= ${STAGE_GRID_SWITCH}px`];
     for (const file of files) {
       for (const m of readFileSync(file, "utf8").matchAll(/@container\s+stage\s*\(([^)]*)\)/g)) {
-        expect(m[1].replace(/\s+/g, " ").trim(), file).toBe(`width < ${STAGE_GRID_SWITCH}px`);
+        expect(allowed, file).toContain(m[1].replace(/\s+/g, " ").trim());
       }
     }
+  });
+
+  // Scene CSS sits in layer(scenes), which beats layer(components) whatever the specificity, so a scene
+  // rule that sets display on a part would show a desktop-only part on the mobile grid (or the reverse).
+  // An !important declaration in an earlier layer beats every normal declaration in later layers.
+  it("hide the other grid's parts with !important, so no scene's display can show them", () => {
+    const css = readFileSync("src/components/stage.css", "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    const block = (condition: string) => {
+      const start = css.search(new RegExp(`@container\\s+stage\\s*\\(\\s*${condition}\\s*\\)\\s*\\{`));
+      if (start < 0) return "";
+      let depth = 0;
+      for (let i = css.indexOf("{", start); i < css.length; i++) {
+        if (css[i] === "{") depth++;
+        if (css[i] === "}" && --depth === 0) return css.slice(start, i + 1);
+      }
+      return "";
+    };
+    const rule = (text: string, selector: string) =>
+      text.match(new RegExp(`(?:^|[}\\s])${selector.replace(/[.]/g, "\\.").replace(/ /g, "\\s+")}\\s*\\{([^}]*)\\}`))?.[1].replace(/\s+/g, " ").trim() ?? "";
+    const mobile = block(`width\\s*<\\s*${STAGE_GRID_SWITCH}px`);
+    const desktop = block(`width\\s*>=\\s*${STAGE_GRID_SWITCH}px`);
+    expect(rule(mobile, ".stage .g-d")).toBe("display: none !important;");
+    expect(rule(desktop, ".stage .g-m")).toBe("display: none !important;");
+    // The mobile default stays normal, so a .g-m part can still take its own display from scene CSS.
+    expect(rule(mobile, ".stage .g-m")).toBe("display: block;");
   });
 
   it("never use overflow: hidden (it captures view() timelines; use clip)", () => {

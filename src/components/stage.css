@@ -15,7 +15,11 @@
 .pos > svg, .pos > img, .bob > svg { display: block; width: 100%; height: auto; }
 .g-m { display: none; }
 
-/* The mobile grid follows the stage's own width, not the viewport (spec §8, clarification 1). */
+/* The mobile grid follows the stage's own width, not the viewport (spec §8, clarification 1).
+   Scene CSS sits in layer(scenes), which beats this layer whatever the specificity, so a scene rule that
+   sets display on a part would show the other grid's parts. An !important declaration in an earlier
+   layer beats every normal declaration in later layers, so the hides below win in every scene. The
+   shows stay normal: a .g-m part can still take its own display (flex, grid) from its scene CSS. */
 @container stage (width < 760px) {
   .stage { aspect-ratio: var(--mdw) / var(--mdh); --u: calc(100cqw / var(--mdw)); border-radius: 24px; }
   .stage .pos {
@@ -23,8 +27,11 @@
     top: calc(var(--my, var(--y)) * var(--u));
     width: calc(var(--mw, var(--w)) * var(--u));
   }
-  .stage .g-d { display: none; }
+  .stage .g-d { display: none !important; }
   .stage .g-m { display: block; }
+}
+@container stage (width >= 760px) {
+  .stage .g-m { display: none !important; }
 }
 
 @media (pointer: fine) and (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
