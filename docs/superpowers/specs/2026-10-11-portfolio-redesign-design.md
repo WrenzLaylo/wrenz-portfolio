@@ -73,6 +73,12 @@ These were settled in brainstorming (2026-10-09 to 2026-10-11) and are not reope
   optimizer URLs (AVIF, then WebP, quality 75), sizes, width and height, lazy or eager loading and
   `fetchPriority`. A test compares its markup with `next/image` for every image on the page and fails on
   any runtime import of `next/image`. Read "`next/image`" in Sections 6, 7 and 12 as this component.
+- **2026-10-11, at the Phase 3 gate (Wrenz approved the design critique's MUST-FIX 1): the hero splits from
+  1024 px and stacks below.** Plan clarification 2 had it split from 768 px; at 768 to 1023 px that left a
+  ~400 px copy column with about 300 px of empty paper above and below it and a ~330 px cast. Tablets now
+  stack it like phones (copy, then the cast centred under it, at most 520 px wide) but keep the six-mascot
+  desktop cast: the hero stage still switches to its phone composition at 767 px, so the hero's layout and
+  its stage grid no longer change at the same width.
 
 ## 3. Page structure
 
