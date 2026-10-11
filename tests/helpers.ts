@@ -331,6 +331,15 @@ export function cssRule(css: string, selector: string): Map<string, string> | nu
   return null;
 }
 
+/** The [x, y] in design px of a rule's `transform: translate(calc(X * var(--u)), calc(Y * var(--u)))`. */
+export function designTranslate(rule: Map<string, string> | null): [number, number] {
+  const transform = rule?.get("transform") ?? "";
+  const u = String.raw`calc\(\s*(-?[\d.]+)\s*\*\s*var\(--u\)\s*\)`;
+  const m = new RegExp(String.raw`^translate\(\s*${u}\s*,\s*${u}\s*\)$`).exec(transform);
+  if (!m) throw new Error(`No design-px translate in "${transform}"`);
+  return [Number(m[1]), Number(m[2])];
+}
+
 /** An element's inline declarations, sorted ("" when it has none): what the server sent, however serialized. */
 export const declarations = (el: Element) => {
   const style = (el as HTMLElement).style;
