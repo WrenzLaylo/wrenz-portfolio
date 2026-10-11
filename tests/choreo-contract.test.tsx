@@ -8,16 +8,13 @@ import type { SceneEnv } from "@/motion/types";
 import { fullScenes } from "@/scenes";
 import { finishAllTweens, setWidth } from "./helpers";
 
-/** What a choreography may change: classes, inline transform/opacity/visibility, appended elements, leaf
- *  text and custom properties on the root. Cleanup must restore all of it. */
+/** What a choreography may change: classes, inline styles, appended elements and leaf text. Cleanup must
+ *  restore all of it: every inline declaration (placement variables included) of every element. */
 function snapshot(root: HTMLElement) {
   return [root, ...root.querySelectorAll<HTMLElement>("*")].map((el) => ({
     tag: el.tagName,
     cls: el.getAttribute("class") ?? "",
-    transform: el.style?.transform ?? "",
-    opacity: el.style?.opacity ?? "",
-    visibility: el.style?.visibility ?? "",
-    vars: el === root ? Array.from(root.style).filter((p) => p.startsWith("--")).sort().join(",") : "",
+    style: Array.from(el.style, (p) => `${p}:${el.style.getPropertyValue(p)}`).sort().join(";"),
     text: el.childElementCount ? "" : (el.textContent ?? ""),
   }));
 }
