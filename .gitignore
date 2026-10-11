@@ -41,3 +41,9 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# brainstorm companion files, perf tool output
+.superpowers/
+tools/perf/out/
+.perf-server.pid
+__pycache__/
