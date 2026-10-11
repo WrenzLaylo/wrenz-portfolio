@@ -1,0 +1,3 @@
+/* Scene lab only (/dev/scenes/<id>, built with SCENE_LAB=1). */
+.lab { min-height: 100dvh; padding: 48px 24px; display: grid; justify-items: center; gap: 64px; background: var(--tint, var(--color-paper)); }
+.lab-frame { max-width: 100%; }
