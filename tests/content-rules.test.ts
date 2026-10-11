@@ -1,15 +1,23 @@
 import { describe, expect, it } from "vitest";
+import * as capabilitiesModule from "@/content/capabilities";
+import * as experienceModule from "@/content/experience";
 import * as glossaryModule from "@/content/glossary";
+import { pageCopy } from "@/content/page-copy";
+import * as projectsModule from "@/content/projects";
 import * as recognitionModule from "@/content/recognition";
+import * as routesModule from "@/content/routes";
 import * as sectionsModule from "@/content/sections";
 import * as siteModule from "@/content/site";
 
-// Task 1.2 adds projects, experience, capabilities and routes to this list.
 export const contentModules: Record<string, unknown> = {
   site: siteModule,
   sections: sectionsModule,
   recognition: recognitionModule,
   glossary: glossaryModule,
+  projects: projectsModule,
+  experience: experienceModule,
+  capabilities: capabilitiesModule,
+  routes: routesModule,
 };
 
 function* strings(value: unknown, path: string): Generator<[string, string]> {
@@ -48,5 +56,24 @@ describe("copy rules", () => {
   it("keeps award wording in one place", () => {
     expect(recognitionModule.recognition.map((r) => r.id)).toEqual(["cum-laude", "ircite-2026", "jpcs-2025", "azure-fundamentals"]);
     expect(recognitionModule.award("ircite-2026").detail).toBe("IRCITE 2026");
+  });
+
+  it("glosses each Tagalog phrase once, right after its first use", () => {
+    const text = pageCopy().join("\n");
+    const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    for (const { term, gloss } of glossaryModule.glossary) {
+      const hits = [...text.matchAll(new RegExp(`\\*?${escape(term)}\\*?`, "g"))];
+      expect(hits.length, term).toBeGreaterThan(0);
+      const after = (m: RegExpMatchArray) => text.slice((m.index ?? 0) + m[0].length);
+      expect(after(hits[0]).startsWith(gloss), `first use of "${term}" must be followed by "${gloss}"`).toBe(true);
+      for (const m of hits.slice(1)) expect(after(m).startsWith(gloss), `"${term}" glossed twice`).toBe(false);
+    }
+  });
+
+  it("uses no other contact or work labels anywhere", () => {
+    const rogue = pageCopy().filter((s) =>
+      /get in touch|contact me|start a conversation|hire me|view (the )?(work|projects)|see (my )?projects/i.test(s),
+    );
+    expect(rogue).toEqual([]);
   });
 });
