@@ -6,6 +6,7 @@
 @import "../components/sections.css" layer(components);
 @import "../components/stage.css" layer(components);
 @import "../components/device.css" layer(components);
+@import "../components/world.css" layer(components);
 @import "../components/lab.css" layer(components);
 @import "../scenes/basic/scene.css" layer(scenes);
 

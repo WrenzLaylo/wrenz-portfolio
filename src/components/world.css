@@ -1,0 +1,117 @@
+/* The Work section and the project worlds (spec §8). */
+.work-head { background: var(--color-tint-pos); padding-top: 72px; }
+
+.world { position: relative; background: var(--tint); padding: 72px 0 144px; --tick: var(--color-yolk); }
+.work-head + .world { padding-top: 56px; }
+
+/* Per-world accents: tick discs and link underlines (decoration only, never text). */
+[data-world="pos"] { --tick: var(--color-grass); --link-line: var(--color-grass); }
+[data-world="time-log"] { --tick: var(--color-clock); --link-line: var(--color-clock); }
+/* Interim accents in each world's hue family; Phases 5 and 6 set the final ones with Fable. */
+[data-world="service-areas"] { --tick: #FF9B85; --link-line: #FF9B85; }
+[data-world="katiwala"] { --tick: #5FD3C4; --link-line: #5FD3C4; }
+[data-world="stockroom"] { --tick: #B9A6FF; --link-line: #B9A6FF; }
+[data-world="agent-island"] { --tick: #FF9EBB; --link-line: #FF9EBB; }
+
+/* Copy */
+.world h3 { font: 800 36px/1.08 var(--font-display); }
+.w-summary { margin-top: 16px; font-size: 18px; line-height: 1.55; color: var(--color-muted); }
+.w-points { margin-top: 24px; display: grid; gap: 14px; }
+/* Two grid items only: the tick and ONE text span, so inline <em> never becomes its own item. */
+.w-points li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 12px; align-items: start; font-size: 16px; line-height: 1.5; }
+.tick { width: 26px; height: 26px; margin-top: -1px; border-radius: 999px; display: grid; place-items: center; background: var(--tick); color: var(--color-ink); }
+.tick .icon { width: 14px; height: 14px; }
+.tags { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 8px; }
+.tags li { background: var(--color-white); border-radius: 999px; padding: 6px 12px; font: 600 13px/1.2 var(--font-body); }
+.link-row { margin-top: 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 22px; }
+.note { font-size: 14px; color: var(--color-muted); }
+.w-fig { margin: 0; min-width: 0; }
+.caption { margin-top: 12px; max-width: none; font-size: 14px; color: var(--color-muted); text-align: right; }
+
+/* Varied blocks */
+.varied { margin-top: 24px; }
+.varied-stat { display: flex; align-items: baseline; gap: 12px; }
+.stat-value { font: 800 56px/1 var(--font-display); letter-spacing: -0.03em; }
+.stat-label { font-size: 16px; line-height: 1.35; color: var(--color-muted); max-width: 22ch; }
+.varied-flow { padding: 14px 18px; border-radius: var(--radius-md); background: rgb(255 255 255 / 0.6); }
+.varied-flow li { position: relative; padding: 6px 0 6px 28px; font-size: 15px; line-height: 1.45; }
+.varied-flow li::before {
+  content: ""; position: absolute; left: 4px; top: 12px; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--tick); box-shadow: 0 0 0 3px var(--color-white);
+}
+.varied-flow li + li::after { content: ""; position: absolute; left: 9px; top: -10px; width: 2px; height: 22px; background: rgb(31 27 36 / 0.25); }
+.varied-ba { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.varied-ba > div { padding: 14px 16px; border-radius: var(--radius-md); background: rgb(255 255 255 / 0.6); }
+.varied-ba > div + div { background: var(--color-white); }
+.varied-ba dt { font: 700 14px/1.2 var(--font-display); }
+.varied-ba dd { margin: 6px 0 0; font-size: 15px; line-height: 1.45; }
+.varied-promise { padding-left: 16px; border-left: 4px solid var(--tick); font: 700 20px/1.35 var(--font-display); }
+.varied-quote { margin: 24px 0 0; }
+.varied-quote blockquote { margin: 0; font: 700 20px/1.35 var(--font-display); }
+.varied-quote figcaption { margin-top: 8px; font-size: 14px; color: var(--color-muted); }
+
+/* The hill edge that closes every band (the hero uses it too). */
+.hill-edge { position: absolute; left: 0; bottom: -1px; width: 100%; height: 72px; pointer-events: none; }
+
+/* Split worlds from 1024 px: copy column + stage, alternating sides, copy centred against the stage. */
+@media (min-width: 1024px) {
+  .world-split-start .world-grid,
+  .world-split-end .world-grid { display: grid; column-gap: 60px; align-items: center; }
+  .world-split-start .world-grid { grid-template-columns: 400px minmax(0, 1fr); grid-template-areas: "copy fig"; }
+  .world-split-end .world-grid { grid-template-columns: minmax(0, 1fr) 400px; grid-template-areas: "fig copy"; }
+  .w-copy { grid-area: copy; }
+  .w-fig { grid-area: fig; }
+
+  /* Full-bleed worlds: the stage spans the band edge to edge and the copy sits on a paper panel over its
+     calm left side (scenes keep design x < 560 free of moving parts). */
+  .world-bleed { padding-top: 48px; }
+  .world-bleed .world-grid { display: grid; grid-template-areas: "stack"; align-items: center; }
+  .world-bleed .w-fig, .world-bleed .w-copy { grid-area: stack; }
+  .world-bleed .w-copy {
+    position: relative; z-index: 1; justify-self: start; width: min(440px, 40%);
+    margin-left: max(40px, calc((100% - 1280px) / 2));
+    padding: 32px; border-radius: var(--radius-lg); background: var(--color-paper);
+  }
+  .world-bleed .w-fig { align-self: stretch; display: flex; flex-direction: column; }
+  .world-bleed .stage-c { flex: 1; display: grid; }
+  .world-bleed .stage { align-self: stretch; aspect-ratio: auto; min-height: calc(100cqw * 720 / 1280); }
+  .world-bleed .w-points li { font-size: 15px; }
+  .world-bleed .caption { padding-right: max(40px, calc((100% - 1280px) / 2)); }
+}
+
+@media (min-width: 1024px) and (max-width: 1180px) {
+  .world-split-start .world-grid { grid-template-columns: 340px minmax(0, 1fr); column-gap: 40px; }
+  .world-split-end .world-grid { grid-template-columns: minmax(0, 1fr) 340px; column-gap: 40px; }
+  .world h3 { font-size: 32px; }
+}
+
+/* Below 1024 px every world stacks with the stage ABOVE the copy (spec §8); DOM order is unchanged. */
+@media (max-width: 1023px) {
+  .world-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "fig" "copy"; row-gap: 32px; }
+  .w-copy { grid-area: copy; }
+  .w-fig { grid-area: fig; }
+  .world-bleed { padding-top: 0; }
+  .world-bleed .w-copy { width: min(1280px, 100% - 80px); margin-inline: auto; }
+  .world-bleed .caption { padding-right: 40px; }
+}
+
+/* Bleed stages are edge to edge, so they keep square corners at every width. */
+.world-bleed .stage { border-radius: 0; }
+
+@media (max-width: 767px) {
+  .work-head { padding-top: 48px; }
+  .world { padding: 48px 0 104px; }
+  .work-head + .world { padding-top: 32px; }
+  .world-bleed { padding-top: 0; }
+  .world h3 { font-size: 26px; }
+  .w-summary { font-size: 17px; }
+  .w-points li { font-size: 15px; }
+  .tags li { font-size: 12px; }
+  .stat-value { font-size: 44px; }
+  .varied-ba { grid-template-columns: 1fr; }
+  .world-bleed .w-copy { width: calc(100% - 32px); }
+  .world-bleed .caption { padding-right: 16px; }
+  .caption { text-align: left; font-size: 13px; }
+}
+
+.nowrap { white-space: nowrap; }
