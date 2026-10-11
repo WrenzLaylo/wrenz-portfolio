@@ -1,0 +1,67 @@
+/* Stage system (spec §8). Objects sit on a design grid; --u is one design px of the active grid. */
+.stage-c { container: stage / inline-size; }
+.stage {
+  position: relative;
+  overflow: clip; /* never hidden: that would capture the layers' view() timelines */
+  border-radius: var(--radius-lg);
+  aspect-ratio: var(--dw) / var(--dh);
+  --u: calc(100cqw / var(--dw));
+}
+.layer, .mouse { position: absolute; inset: 0; }
+.layer { will-change: transform; }
+.layer-fg { pointer-events: none; }
+[data-interactive] { pointer-events: auto; cursor: pointer; }
+.pos { position: absolute; left: calc(var(--x) * var(--u)); top: calc(var(--y) * var(--u)); width: calc(var(--w) * var(--u)); }
+.pos > svg, .pos > img, .bob > svg { display: block; width: 100%; height: auto; }
+.g-m { display: none; }
+
+/* The mobile grid follows the stage's own width, not the viewport (spec §8, clarification 1). */
+@container stage (width < 760px) {
+  .stage { aspect-ratio: var(--mdw) / var(--mdh); --u: calc(100cqw / var(--mdw)); border-radius: 24px; }
+  .stage .pos {
+    left: calc(var(--mx, var(--x)) * var(--u));
+    top: calc(var(--my, var(--y)) * var(--u));
+    width: calc(var(--mw, var(--w)) * var(--u));
+  }
+  .stage .g-d { display: none; }
+  .stage .g-m { display: block; }
+}
+
+@media (pointer: fine) and (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  .mouse { will-change: transform; }
+}
+
+/* Off-screen the engine adds .paused. Only time-based loops pause: pausing a scroll-driven animation
+   would desync it from the scroll position (spec §11 step 4). */
+[data-scene].paused .loop { animation-play-state: paused !important; }
+/* Off-screen stages also give their compositor layers back: fewer layers to layerize on every frame. */
+[data-scene].paused .layer, [data-scene].paused .mouse { will-change: auto; }
+
+@keyframes bob {
+  0% { transform: translateY(0) rotate(0deg); animation-timing-function: ease-in-out; }
+  25% { transform: translateY(var(--by, -8px)) rotate(var(--br, 3deg)); animation-timing-function: ease-in-out; }
+  50% { transform: translateY(0) rotate(0deg); animation-timing-function: ease-in-out; }
+  75% { transform: translateY(var(--by, -8px)) rotate(var(--br, 3deg)); animation-timing-function: ease-in-out; }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+@keyframes drift { to { transform: translateX(16px); } }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Shared loops start under .live, after the entrance has shown their elements. Two bob cycles per
+     iteration: every iteration boundary wakes the main thread. */
+  .live .bob.loop { animation: bob calc(var(--bd, 1.7s) * 4) linear var(--bdl, 0s) infinite; }
+  .live .cloud.loop { animation: drift 9s ease-in-out infinite alternate; }
+  .live .cloud.loop + .cloud.loop { animation-duration: 11s; animation-direction: alternate-reverse; }
+
+  /* Parallax on native scroll. Where scroll timelines are unsupported, layers simply sit still. */
+  @supports (animation-timeline: view()) {
+    .stage { --pb: min(80px, 9vh); --pf: min(32px, 3.5vh); }
+    .stage > .layer-bg { animation: par-bg linear both; animation-timeline: view(); animation-range: cover; }
+    .stage > .layer-fg { animation: par-fg linear both; animation-timeline: view(); animation-range: cover; }
+    @container stage (width < 760px) {
+      .stage { --pb: min(40px, 5vh); --pf: 0px; }
+    }
+  }
+}
+@keyframes par-bg { from { transform: translateY(calc(var(--pb) * -1)); } to { transform: translateY(var(--pb)); } }
+@keyframes par-fg { from { transform: translateY(var(--pf)); } to { transform: translateY(calc(var(--pf) * -1)); } }

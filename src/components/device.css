@@ -1,0 +1,19 @@
+/* Device frames scale with the stage's design unit (--u); outside a stage they fall back to 1px. */
+.device { position: relative; }
+.device-screen {
+  position: relative; background: var(--color-ink);
+  padding: calc(10 * var(--u, 1px)); border-radius: calc(30 * var(--u, 1px));
+}
+.device-shot { display: block; width: 100%; height: auto; border-radius: calc(18 * var(--u, 1px)); background: #F4F0E6; }
+.device-bar { display: flex; align-items: center; gap: calc(7 * var(--u, 1px)); height: calc(30 * var(--u, 1px)); padding-left: calc(6 * var(--u, 1px)); margin-top: calc(-4 * var(--u, 1px)); }
+.device-bar i { width: calc(11 * var(--u, 1px)); aspect-ratio: 1; border-radius: 50%; background: var(--color-paper); }
+.device-phone .device-screen { padding: calc(12 * var(--u, 1px)); border-radius: calc(44 * var(--u, 1px)); }
+.device-phone .device-shot { border-radius: calc(32 * var(--u, 1px)); }
+.device-base {
+  position: relative; display: block; width: 110%; margin-left: -5%; height: calc(18 * var(--u, 1px));
+  background: #3A3442; border-radius: 0 0 calc(16 * var(--u, 1px)) calc(16 * var(--u, 1px));
+}
+.device-base::after {
+  content: ""; position: absolute; left: 41%; width: 18%; top: 0; height: 45%;
+  background: #2A2530; border-radius: 0 0 calc(8 * var(--u, 1px)) calc(8 * var(--u, 1px));
+}
