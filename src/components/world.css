@@ -90,6 +90,10 @@
   .world-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "fig" "copy"; row-gap: 32px; }
   .w-copy { grid-area: copy; }
   .w-fig { grid-area: fig; }
+  /* A split world's stage keeps the width of the 1024 split's figure (1024 - 80 - 340 - 40 = 564 px), so
+     its mobile grid is drawn at ~1.58x on tablets, not 2.07x across the whole column. The caption moves
+     with it. The bleed worlds stay edge to edge. */
+  .world-split-start .w-fig, .world-split-end .w-fig { width: min(100%, 564px); justify-self: center; }
   .world-bleed { padding-top: 0; }
   .world-bleed .w-copy { width: min(1280px, 100% - 80px); margin-inline: auto; }
   .world-bleed .caption { padding-right: 40px; }

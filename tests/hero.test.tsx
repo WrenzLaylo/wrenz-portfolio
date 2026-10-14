@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { Hero } from "@/components/Hero";
 import { fullProjects } from "@/content/projects";
 import { site } from "@/content/site";
+import { cssBlock, cssRule } from "./helpers";
 
 const doc = new JSDOM(`<body>${renderToStaticMarkup(<Hero />)}</body>`).window.document;
 const stage = doc.querySelector<HTMLElement>('[data-scene="hero"]') as HTMLElement;
@@ -67,6 +68,22 @@ describe("hero.css", () => {
   it("enters the lede with transform only as well, never from opacity 0", () => {
     expect(css).toMatch(/\.hero \.lede \{ animation: hero-rise /);
     expect(css).not.toMatch(/\.hero \.lede \{ animation: hero-in /);
+  });
+
+  // At 768 to 1023 px the split squeezed the copy into ~400 px with ~300 px of empty paper above and below
+  // it and a ~330 px cast (Phase 3 MUST-FIX 1). The hero splits from 1024 px and stacks below: copy, then
+  // the cast centred under it. The cast keeps its six-mascot desktop composition down to the phone switch
+  // at 767 px (spec clarification 2), so the tablet block never touches the stage's grid.
+  it("splits from 1024 px and stacks below, keeping the desktop cast on tablets", () => {
+    expect(cssRule(css, ".hero-grid")?.get("grid-template-columns")).toBe("54fr 46fr");
+    const tablet = cssBlock(css, "@media (min-width: 768px) and (max-width: 1023px)");
+    expect(tablet).not.toBeNull();
+    expect(cssRule(tablet ?? "", ".hero-grid")?.get("grid-template-columns")).toBe("1fr");
+    expect(cssRule(tablet ?? "", ".hero-stage-c")?.get("justify-self")).toBe("center");
+    expect(tablet).not.toMatch(/--mdw|--mx|\.g-d/);
+    const phone = cssBlock(css, "@media (max-width: 767px)") ?? "";
+    expect(cssRule(phone, ".hero-grid")?.get("grid-template-columns")).toBe("1fr");
+    expect(cssRule(phone, ".hero-stage")?.get("aspect-ratio")).toBe("var(--mdw) / var(--mdh)");
   });
 
   it("hides nothing behind a preload class", () => {

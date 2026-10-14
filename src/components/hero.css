@@ -1,4 +1,5 @@
-/* The hero (spec §7): copy left, the "cast" right. Fills the first viewport under the 64 px nav. */
+/* The hero (spec §7): copy left, the "cast" right from 1024 px, stacked below. Fills the first viewport
+   under the 64 px nav. */
 .hero { position: relative; overflow: clip; min-height: calc(100dvh - 64px); display: flex; flex-direction: column; padding-bottom: 72px; }
 .hero-grid { flex: 1; display: grid; grid-template-columns: 54fr 46fr; align-items: center; gap: 24px; padding: 32px 0 48px; }
 
@@ -25,6 +26,16 @@
 .portrait img { display: block; width: 100%; height: 100%; object-fit: cover; }
 /* scale(1) keeps the function list equal to the pop keyframe's, so it interpolates per function. */
 .m-pop { transform: scale(1) rotate(var(--tilt, 0deg)); }
+
+/* Tablets stack the hero (Phase 3 gate, 2026-10-11): split, the copy column was ~400 px wide with ~300 px of
+   empty paper above and below it. Copy first, then the cast centred under it, keeping its six-mascot
+   desktop composition (the stage's grid still switches at 767 px). */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .hero-grid { grid-template-columns: 1fr; align-content: center; gap: 40px; padding: 48px 0 40px; }
+  .h1-slogan { font-size: clamp(44px, 6.6vw, 60px); }
+  .lede { max-width: 40ch; }
+  .hero-stage-c { width: min(100%, 520px); justify-self: center; }
+}
 
 @media (max-width: 767px) {
   .hero-grid { grid-template-columns: 1fr; padding: 24px 0 40px; gap: 28px; }

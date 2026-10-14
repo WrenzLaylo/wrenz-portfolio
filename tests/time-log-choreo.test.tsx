@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fullProjects } from "@/content/projects";
@@ -6,7 +7,20 @@ import { registry } from "@/motion/registry";
 import type { SceneEnv } from "@/motion/types";
 import choreo from "@/scenes/time-log/choreo";
 import { TimeLogScene } from "@/scenes/time-log/Scene";
-import { animationsOf, declarations, FakeAnimation, finishAll, FRAME, installFakeWaapi, removeFakeWaapi, sample, setWidth } from "./helpers";
+import {
+  animationsOf,
+  cssBlock,
+  cssRule,
+  declarations,
+  designTranslate,
+  FakeAnimation,
+  finishAll,
+  FRAME,
+  installFakeWaapi,
+  removeFakeWaapi,
+  sample,
+  setWidth,
+} from "./helpers";
 
 const project = fullProjects.find((p) => p.slug === "time-log")!;
 const markup = renderToStaticMarkup(<TimeLogScene project={project} />);
@@ -126,6 +140,20 @@ describe("time-log choreography", () => {
     const typing = anim(root.querySelector(".typing")).keyframes;
     expect(sample(typing, "opacity", t(LAND(4) + 1499))).toBe(0);
     expect(sample(typing, "opacity", t(LAND(4) + 1800))).toBeCloseTo(1, 6);
+  });
+
+  // The server sends the end state; the entrance must land on it, or the sheet jumps when .live arrives.
+  it.each([false, true])("slides the backup sheet out to its CSS end offset (mobile grid: %s)", (mobile) => {
+    const css = readFileSync("src/scenes/time-log/scene.css", "utf8");
+    const scope = mobile ? (cssBlock(css, "@container stage (width < 760px)") ?? "") : css;
+    const [x, y] = designTranslate(cssRule(scope, '[data-scene="time-log"] .win-copy'));
+    const root = mount(mobile ? 358 : 820); // one design px is one CSS px on either grid
+    choreo(root, env(false, mobile)).enter();
+    const keyframes = anim(root.querySelector('[data-part="win-copy"]')).keyframes;
+    expect(sample(keyframes, "transform", 0, 0)).toBe(0);
+    expect(sample(keyframes, "transform", 0, 1)).toBe(0);
+    expect(sample(keyframes, "transform", 1, 0)).toBe(x);
+    expect(sample(keyframes, "transform", 1, 1)).toBe(y);
   });
 
   it("sweeps the clock from 7:00 through each posted time, ending on the server's 3:00", () => {

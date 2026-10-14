@@ -51,7 +51,8 @@ const choreo: Choreo = (root, { mobile, skipEntrance }) => {
   const fadeIn: Keyframe[] = [{ opacity: 0 }, { opacity: 1 }];
 
   if (animate) {
-    const copyEnd = mobile ? { x: 12, y: -14 } : { x: 24, y: -24 };
+    // The backup sheet's end offset in design px: the .win-copy translate in scene.css on each grid.
+    const copyEnd = mobile ? { x: 4, y: -14 } : { x: 10, y: -24 };
     intro.add(one('[data-part="win"]'), [{ transform: `translateY(${px(30 * u)})` }, { transform: "translateY(0px)" }], { dur: 600, ease: EASE.power3Out });
     intro.add(one('[data-part="win-copy"]'), [{ transform: "translate(0px, 0px)" }, { transform: `translate(${px(copyEnd.x * u)}, ${px(copyEnd.y * u)})` }], {
       at: 1000,

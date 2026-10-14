@@ -1,9 +1,11 @@
+import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { fullProjects } from "@/content/projects";
 import { fullScenes } from "@/scenes";
 import { TimeLogScene } from "@/scenes/time-log/Scene";
+import { cssBlock, cssRule, designTranslate } from "./helpers";
 
 const project = fullProjects.find((p) => p.slug === "time-log")!;
 const doc = new JSDOM(`<body>${renderToStaticMarkup(<TimeLogScene project={project} />)}</body>`).window.document;
@@ -46,6 +48,28 @@ describe("time-log scene", () => {
     expect(stage.querySelectorAll(".burst i")).toHaveLength(6);
     expect(stage.querySelector(".typing")?.classList.contains("g-d")).toBe(true);
     expect(stage.querySelector(".layer-fg .mouse")).not.toBeNull();
+  });
+
+  // Phase 3 MUST-FIX 3: the backup sheet behind the window was the only outlined object in the finished
+  // scenes (spec §4: two tones, no outlines), and its offset pushed it past the stage's right edge, which
+  // clipped it. It is a flat two-tone sticker now and ends at least 8 design px inside the stage.
+  describe("the backup sheet", () => {
+    const css = readFileSync("src/scenes/time-log/scene.css", "utf8");
+    const desktop = cssRule(css, '[data-scene="time-log"] .win-copy');
+    const mobile = cssRule(cssBlock(css, "@container stage (width < 760px)") ?? "", '[data-scene="time-log"] .win-copy');
+
+    it("has no outline, only a flat bottom shade", () => {
+      for (const [property] of desktop ?? []) expect(property).not.toMatch(/^(border(?!-radius)|outline)/);
+      for (const [property] of mobile ?? []) expect(property).not.toMatch(/^(border(?!-radius)|outline)/);
+      expect(desktop?.get("box-shadow")).toBe("0 calc(6 * var(--u)) 0 #E3D6BF");
+    });
+
+    it("ends at least 8 design px inside the stage on both grids", () => {
+      const wrap = stage.querySelector<HTMLElement>(".win-wrap") as HTMLElement;
+      const v = (el: HTMLElement, name: string) => Number(el.style.getPropertyValue(name));
+      expect(v(wrap, "--x") + v(wrap, "--w") + designTranslate(desktop)[0]).toBeLessThanOrEqual(v(stage, "--dw") - 8);
+      expect(v(wrap, "--mx") + v(wrap, "--mw") + designTranslate(mobile)[0]).toBeLessThanOrEqual(v(stage, "--mdw") - 8);
+    });
   });
 
   it("marks the time-based loops with .loop", () => {
