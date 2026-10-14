@@ -1,15 +1,27 @@
+import { Capabilities } from "@/components/Capabilities";
+import { Experience } from "@/components/Experience";
 import { Footer } from "@/components/Footer";
 import { Hero } from "@/components/Hero";
 import { Nav } from "@/components/Nav";
-import MotionRuntime from "@/motion/MotionRuntime";
 import { Sprite } from "@/components/Sprite";
 import { Work } from "@/components/Work";
 import { sections } from "@/content/sections";
 import { site } from "@/content/site";
 import { buildJsonLd, jsonLdHtml } from "@/lib/jsonld";
+import MotionRuntime from "@/motion/MotionRuntime";
 
-// Shell sections until Phase 4 replaces them.
-const shellSections = [sections.moreWork, sections.capabilities, sections.experience, sections.about, sections.contact];
+/** A section Phase 4 has not built yet: its anchor and heading only (removed in Task 4.3). */
+function ShellSection({ id, heading }: { id: string; heading: string }) {
+  return (
+    <section id={id} className="section" aria-labelledby={`${id}-h`}>
+      <div className="wrap">
+        <h2 id={`${id}-h`} className="section-h">
+          {heading}
+        </h2>
+      </div>
+    </section>
+  );
+}
 
 export default function Home() {
   return (
@@ -23,15 +35,11 @@ export default function Home() {
       <main id="main" tabIndex={-1}>
         <Hero />
         <Work />
-        {shellSections.map((s) => (
-          <section key={s.id} id={s.id} className="section" aria-labelledby={`${s.id}-h`}>
-            <div className="wrap">
-              <h2 id={`${s.id}-h`} className="section-h">
-                {s.heading}
-              </h2>
-            </div>
-          </section>
-        ))}
+        <ShellSection id={sections.moreWork.id} heading={sections.moreWork.heading} />
+        <Capabilities />
+        <Experience />
+        <ShellSection id={sections.about.id} heading={sections.about.heading} />
+        <ShellSection id={sections.contact.id} heading={sections.contact.heading} />
       </main>
       <Footer />
       <MotionRuntime />

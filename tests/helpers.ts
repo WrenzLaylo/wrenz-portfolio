@@ -1,4 +1,9 @@
 import { vi } from "vitest";
+import { JSDOM } from "jsdom";
+import type { ReactElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { pageCopy } from "@/content/page-copy";
+import { site } from "@/content/site";
 
 export class FakeIO {
   static all: FakeIO[] = [];
@@ -345,3 +350,24 @@ export const declarations = (el: Element) => {
   const style = (el as HTMLElement).style;
   return Array.from(style, (p) => `${p}:${style.getPropertyValue(p)}${style.getPropertyPriority(p) ? "!important" : ""}`).sort().join(";");
 };
+
+/** Render a server component into a standalone document for markup tests. */
+export function renderDoc(element: ReactElement): Document {
+  return new JSDOM(`<body>${renderToStaticMarkup(element)}</body>`).window.document;
+}
+
+const KNOWN_COPY = [...pageCopy(), ...Object.values(site.labels), ...site.socials.map((s) => s.label)];
+
+/** Visible text that does not come from src/content: components hold no copy (spec §5).
+ *  Decorative subtrees (aria-hidden), scripts, styles and punctuation-only text are skipped. */
+export function strayText(doc: Document): string[] {
+  const stray: string[] = [];
+  const walker = doc.createTreeWalker(doc.body, 4); // NodeFilter.SHOW_TEXT
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const text = node.textContent?.trim() ?? "";
+    if (!/[A-Za-z0-9]/.test(text)) continue;
+    if (node.parentElement?.closest('[aria-hidden="true"], script, style')) continue;
+    if (!KNOWN_COPY.some((copy) => copy.includes(text))) stray.push(text);
+  }
+  return stray;
+}
